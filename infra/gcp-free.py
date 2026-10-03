@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import re
+import runpy
 import shutil
 import subprocess
 import time
@@ -177,20 +178,8 @@ def inventory(api, project, billing):
     return result
 
 
-def free_gate(observed, usage, now=None):
-    """Fail closed on incomplete, stale, shared or historically consumed allowances."""
-    now = now or datetime.now(timezone.utc)
-    captured = datetime.fromisoformat(usage['captured_at'])
-    if captured.tzinfo is None or not 0 <= (now - captured).total_seconds() <= 900:
-        raise ValueError('Usage evidence must be timezone-aware and less than 15 minutes old')
-    if usage.get('period') != now.strftime('%Y-%m') or usage.get('billing_account') != observed['billing_account']:
-        raise ValueError('Usage evidence belongs to a different account or month')
-    if sorted(usage.get('projects', [])) != sorted(observed['projects']) or not usage.get('all_projects_visible'):
-        raise ValueError('Whole billing account visibility required')
-    if usage.get('account_type') != 'ACTIVE_NON_TRIAL' or usage.get('custom_rate_card') is not False:
-        raise ValueError('Sustainable Free Tier eligibility unverified; trial data deletion is unacceptable')
-    if usage.get('official_free_terms_checked_on') != now.date().isoformat():
-        raise ValueError('Recheck current official eligibility before creating resources')
+def resource_gate(observed):
+    """Keep the same conservative single-VM/disk/private-bucket topology."""
     project = observed['project']
     for name, resources in observed['resources'].items():
         if any(resources.get(k) for k in ('forwardingRules', 'routers')):
@@ -211,6 +200,23 @@ def free_gate(observed, usage, now=None):
                 raise ValueError('Storage allowance conflict or capacity reached')
             if bucket['location'].lower() != CONFIG['region'] or bucket['storageClass'] != 'STANDARD':
                 raise ValueError('Bucket location/class is outside selected free allowance')
+
+
+def free_gate(observed, usage, now=None):
+    """Fail closed on incomplete, stale, shared or historically consumed allowances."""
+    now = now or datetime.now(timezone.utc)
+    captured = datetime.fromisoformat(usage['captured_at'])
+    if captured.tzinfo is None or not 0 <= (now - captured).total_seconds() <= 900:
+        raise ValueError('Usage evidence must be timezone-aware and less than 15 minutes old')
+    if usage.get('period') != now.strftime('%Y-%m') or usage.get('billing_account') != observed['billing_account']:
+        raise ValueError('Usage evidence belongs to a different account or month')
+    if sorted(usage.get('projects', [])) != sorted(observed['projects']) or not usage.get('all_projects_visible'):
+        raise ValueError('Whole billing account visibility required')
+    if usage.get('account_type') != 'ACTIVE_NON_TRIAL' or usage.get('custom_rate_card') is not False:
+        raise ValueError('Sustainable Free Tier eligibility unverified; trial data deletion is unacceptable')
+    if usage.get('official_free_terms_checked_on') != now.date().isoformat():
+        raise ValueError('Recheck current official eligibility before creating resources')
+    resource_gate(observed)
     month_hours = calendar.monthrange(now.year, now.month)[1] * 24
     next_month = datetime(now.year + (now.month == 12), now.month % 12 + 1, 1, tzinfo=timezone.utc)
     remaining_hours = (next_month - now).total_seconds() / 3600
@@ -322,33 +328,44 @@ def main():
     parser.add_argument('--billing-account', required=True)
     parser.add_argument('--evidence', type=Path, default=Path('outputs/private-cloud/gcp-inventory.json'))
     parser.add_argument('--usage-evidence', type=Path)
+    parser.add_argument('--cost-policy', choices=('sustainable-free', 'temporary-trial'), default='sustainable-free')
     args = parser.parse_args()
     os.umask(0o077)
     validate_ids(args.project, args.billing_account)
     if args.mode == 'plan':
         print(json.dumps({'state': 'INFRASTRUCTURE-SELECTED', **RELEASE, **CONFIG,
                           'host_provisioned': False, 'required': ['owner Google authorization',
-                          'active non-trial Free Tier account', 'whole-account usage evidence',
+                          ('verified non-billable temporary trial' if args.cost_policy == 'temporary-trial' else 'active non-trial Free Tier account'), 'whole-account evidence',
                           'DuckDNS private authorization after host readiness'],
+                          'cost_policy': args.cost_policy,
+                          'sustainability': 'TEMPORARY FREE — NOT SUSTAINABLE' if args.cost_policy == 'temporary-trial' else 'CONDITIONAL FREE TIER',
                           'ipv4_clients': 'NOT SUPPORTED by direct free IPv6 origin'}))
         return
     if not args.usage_evidence:
         raise ValueError('Private billing-usage evidence required before potentially metered Storage inventory')
     usage = private_json(args.usage_evidence)
-    now = datetime.now(timezone.utc)
-    captured = datetime.fromisoformat(usage['captured_at'])
-    if captured.tzinfo is None or not 0 <= (now - captured).total_seconds() <= 900 or usage.get('period') != now.strftime('%Y-%m') or usage.get('billing_account') != args.billing_account:
-        raise ValueError('Fresh matching monthly evidence required before Storage inventory')
-    calls = usage.get('usage', {}).get('storage_class_a')
-    if not isinstance(calls, (int, float)) or isinstance(calls, bool) or not 0 <= calls <= 1000 or not usage.get('billing_reporting_lag_reviewed'):
-        raise ValueError('Verified Storage request headroom required before inventory')
+    trial = runpy.run_path(str(HERE / 'trial_guard.py'))
+    if args.cost_policy == 'temporary-trial':
+        trial['validate_trial'](usage, billing_account=args.billing_account)
+    else:
+        now = datetime.now(timezone.utc)
+        captured = datetime.fromisoformat(usage['captured_at'])
+        if captured.tzinfo is None or not 0 <= (now - captured).total_seconds() <= 900 or usage.get('period') != now.strftime('%Y-%m') or usage.get('billing_account') != args.billing_account:
+            raise ValueError('Fresh matching monthly evidence required before Storage inventory')
+        calls = usage.get('usage', {}).get('storage_class_a')
+        if not isinstance(calls, (int, float)) or isinstance(calls, bool) or not 0 <= calls <= 1000 or not usage.get('billing_reporting_lag_reviewed'):
+            raise ValueError('Verified Storage request headroom required before inventory')
     api = Google()
     observed = inventory(api, args.project, args.billing_account)
     private_json(args.evidence, observed)
     if args.mode == 'inventory':
         print('Private whole-account inventory saved; resource quotas do not prove remaining free usage.')
         return
-    free_gate(observed, usage)
+    if args.cost_policy == 'temporary-trial':
+        trial['validate_trial'](usage, billing_account=observed['billing_account'], projects=observed['projects'])
+        resource_gate(observed)
+    else:
+        free_gate(observed, usage)
     image = api.request(COMPUTE + 'projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64')
     if not image or image.get('deprecated', {}).get('state') in {'DEPRECATED', 'OBSOLETE', 'DELETED'}:
         raise ValueError('Supported immutable OS image unavailable')
@@ -360,6 +377,7 @@ def main():
     private_json(args.evidence.with_name('gcp-provision-operation.json'), {
         'timestamp': datetime.now(timezone.utc).isoformat(), 'operation': operation,
         'application_commit': RELEASE['commit'], 'configuration_version': CONFIG['configuration_version'],
+        'cost_policy': args.cost_policy,
         'plan_sha256': hashlib.sha256(json.dumps(desired, sort_keys=True).encode()).hexdigest(),
         'state': 'PROVISIONING' if operation.get('status') != 'RUNNING' else 'HOST-PROVISIONED',
         'deployed': False, 'https': 'NOT VERIFIED', 'restore': 'NOT VERIFIED'})
