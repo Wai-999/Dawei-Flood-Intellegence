@@ -1,0 +1,16 @@
+{
+  "configuration_version": "gcp-ipv6-pilot-1",
+  "provider": "google-cloud-free-tier",
+  "region": "us-central1",
+  "zone": "us-central1-a",
+  "machine_type": "e2-micro",
+  "disk_type": "pd-standard",
+  "disk_gb": 30,
+  "external_ipv4": false,
+  "network_stack": "IPV4_IPV6",
+  "bucket_storage_class": "STANDARD",
+  "bucket_max_bytes": 4000000000,
+  "compute_egress_max_bytes": 500000000,
+  "application_release": "infra/release.json",
+  "integrations_enabled": false
+}

@@ -40,3 +40,21 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y python3 age rclone
       - run: sh infra/rehearse-linux.sh
+      - run: sh infra/rehearse-linux.sh --ipv6
+      - name: Approved image transfer and checksum rehearsal
+        run: |
+          python infra/transfer-image.py --output /tmp/dawei-approved-images
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('bootstrap', 'infra/bootstrap.py')
+          module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+          path = Path('/tmp/dawei-approved-images/image-receipt.json')
+          assert module.preloaded_images(path, load=True) == module.preloaded_images(path, load=True)
+          archive = path.parent / 'application.tar'
+          with archive.open('ab') as stream: stream.write(b'TAMPERED SYNTHETIC FIXTURE')
+          try: module.preloaded_images(path)
+          except ValueError: pass
+          else: raise AssertionError('Corrupted transfer archive accepted')
+          print('Exact approved AMD64 image and Caddy private transfer/load/tamper verification: PASS')
+          PY

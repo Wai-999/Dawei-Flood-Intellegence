@@ -1,6 +1,8 @@
 #!/bin/sh
 # Disposable Linux/Compose regression drill. Contains synthetic data only.
 set -eu
+task_variant=${1:-}
+case "$task_variant" in ''|--ipv6) ;; *) echo 'Unsupported rehearsal variant'; exit 1;; esac
 task_root=$(mktemp -d /var/tmp/dawei-rehearsal.XXXXXX)
 task_offsite=$(mktemp -d /var/tmp/dawei-offsite.XXXXXX)
 task_source=$(pwd)
@@ -11,8 +13,8 @@ cleanup() {
     case "$task_offsite" in /var/tmp/dawei-offsite.*) sudo rm -rf "$task_offsite";; esac
 }
 trap cleanup EXIT INT TERM
-sudo python3 infra/bootstrap.py --mode prepare --root "$task_root" --domain flood.example
-sudo python3 infra/bootstrap.py --mode prepare --root "$task_root" --domain flood.example
+sudo python3 infra/bootstrap.py --mode prepare --root "$task_root" --domain flood.example $task_variant
+sudo python3 infra/bootstrap.py --mode prepare --root "$task_root" --domain flood.example $task_variant
 sudo python3 - "$task_root" "$task_offsite" <<'PY'
 import os,sys,secrets
 from pathlib import Path
@@ -45,6 +47,9 @@ k=r/'secrets/backup-signing.key';k.write_bytes(secrets.token_bytes(64));os.chown
 PY
 compose run --rm --no-deps -T maintenance python -c 'from pathlib import Path; from flood.repository import Repository,dump; from flood.auth import create_user; import secrets; from datetime import datetime,timezone; r=Repository("/data/flood.sqlite3"); actor=create_user(r,"synthetic-compose-rehearsal","administrator",secrets.token_urlsafe(32)); p={"state_region":"SYNTHETIC","township":"SYNTHETIC","village":"SYNTHETIC","observed_at":datetime.now(timezone.utc).isoformat(),"source_reference":"Synthetic Linux Compose regression"};r.submit(p,dump(p),actor,"administrator","compose-fixture"); s=Path("/data/source");s.mkdir();(s/"source_profile.json").write_text(dump({"synthetic":True}))' >/dev/null
 compose up -d app backup proxy
+if [ "$task_variant" = --ipv6 ]; then
+    compose exec -T app python -c 'import socket; assert socket.getaddrinfo(socket.gethostname(),None,socket.AF_INET6), "Container IPv6 address missing"'
+fi
 sudo python3 - "$task_root" "$task_source" <<'PY'
 import importlib.util,sys
 from pathlib import Path

@@ -91,7 +91,7 @@ def install_docker(distro, codename):
     run(['systemctl', 'enable', '--now', 'docker'])
 
 
-def prepare(root, domain, image):
+def prepare(root, domain, image, *, ipv6=False, caddy_image=None):
     if (root / 'STOP_WRITES').exists():
         raise ValueError('STOP_WRITES incident latch exists; use isolated recovery before restarting')
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -118,7 +118,18 @@ def prepare(root, domain, image):
             raise ValueError('Existing ARM configuration is not a pinned image ID')
         image = match.group(1)
     write_once(compose_env, f'FLOOD_ROOT={root}\nFLOOD_RELEASE_IMAGE={image}\n')
-    write_once(root / 'compose.yml', (HERE / 'compose.yml').read_text())
+    configuration = (HERE / 'compose.yml').read_text()
+    if caddy_image:
+        configuration = configuration.replace(RELEASE['caddy_image'], caddy_image)
+    if ipv6:
+        configuration = configuration.replace('  ingress:\n    ipam:', '  ingress:\n    enable_ipv6: true\n    ipam:')
+        configuration = configuration.replace('config: [{subnet: 172.29.0.0/28}]',
+                                             'config: [{subnet: 172.29.0.0/28}, {subnet: "fd6d:da:e1::/64"}]')
+        # Core fits a 1 GiB VM; additional workers require live memory commissioning.
+        for name, limit in [('maintenance', '128m'), ('app', '256m'), ('backup', '128m'),
+                            ('telegram', '96m'), ('sheets', '128m'), ('proxy', '64m')]:
+            configuration = configuration.replace(f'  {name}:\n', f'  {name}:\n    mem_limit: {limit}\n    pids_limit: 128\n')
+    write_once(root / 'compose.yml', configuration)
     write_once(root / 'Caddyfile', (HERE / 'Caddyfile').read_text(), 0o644)
     for name in ('host-monitor.py', 'offsite.py', 'external-probe.py'):
         target = root / name
@@ -149,6 +160,46 @@ def release_image(root):
     run(['sh', 'scripts/container-smoke.sh', tag], cwd=source)
     run(['sh', 'scripts/commissioning-smoke.sh', tag], cwd=source)
     return run(['docker', 'image', 'inspect', '--format', '{{.Id}}', tag], capture_output=True).stdout.strip()
+
+
+def preloaded_images(receipt_path, *, load=False):
+    """Receipt is trusted only after private authenticated transfer from the operator.
+
+    Registry pins, archive hashes and loaded config IDs are all checked. A checksum
+    alone is not a signature or approval from an untrusted receipt producer.
+    """
+    if receipt_path.is_symlink() or not receipt_path.is_file() or receipt_path.stat().st_mode & 0o077:
+        raise ValueError('Private mode-600 image receipt required')
+    receipt = json.loads(receipt_path.read_text())
+    if receipt.get('application_commit') != RELEASE['commit']:
+        raise ValueError('Approved source pin mismatch')
+    result = {}
+    for entry in receipt.get('images', []):
+        kind = entry.get('kind')
+        expected = {'application': RELEASE['amd64_image'], 'caddy': RELEASE['caddy_image']}.get(kind)
+        if kind in result or not expected or entry.get('registry_digest') != expected:
+            raise ValueError('Image registry pin mismatch')
+        name = entry.get('archive', '')
+        if name != kind + '.tar' or not re.fullmatch(r'sha256:[a-f0-9]{64}', entry.get('image_config_digest', '')):
+            raise ValueError('Unsafe archive path or unpinned image configuration')
+        archive = receipt_path.parent / name
+        if archive.is_symlink() or not archive.is_file() or archive.stat().st_mode & 0o077:
+            raise ValueError('Private transferred archive required')
+        digest = hashlib.sha256()
+        with archive.open('rb') as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                digest.update(chunk)
+        if digest.hexdigest() != entry.get('archive_sha256'):
+            raise ValueError('Transferred archive checksum mismatch')
+        if load:
+            run(['docker', 'load', '--input', str(archive)], stdout=subprocess.DEVNULL)
+            observed = json.loads(run(['docker', 'image', 'inspect', entry['image_config_digest']], capture_output=True).stdout)[0]
+            if observed['Id'] != entry['image_config_digest'] or observed['Architecture'] != 'amd64' or observed['Os'] != 'linux':
+                raise ValueError('Loaded image configuration or architecture mismatch')
+        result[kind] = entry['image_config_digest']
+    if set(result) != {'application', 'caddy'}:
+        raise ValueError('Both approved image archives required')
+    return result
 
 
 def firewall(ssh_cidr):
@@ -218,6 +269,8 @@ def main():
     parser.add_argument('--configure-firewall', action='store_true')
     parser.add_argument('--ssh-cidr')
     parser.add_argument('--admin-user', help='Explicit named operator; password generated only on first creation')
+    parser.add_argument('--ipv6', action='store_true', help='Dual-stack private Docker network and small-VM resource limits')
+    parser.add_argument('--preloaded-receipt', type=Path, help='Trusted private IAP-transferred image receipt; no registry pull')
     args = parser.parse_args()
     validate(args.root, args.domain)
     if args.admin_user and not re.fullmatch(r'[A-Za-z0-9_.-]{1,100}', args.admin_user):
@@ -227,7 +280,11 @@ def main():
                           'integrations': 'disabled', 'production_host_provisioned': False}))
         return
     distro, codename = verify_linux(args.root)
-    prepare(args.root, args.domain, RELEASE['amd64_image'] if platform.machine() == 'x86_64' else 'ARM64-PIN-PENDING')
+    transferred = preloaded_images(args.preloaded_receipt) if args.preloaded_receipt else {}
+    if transferred and platform.machine() != 'x86_64':
+        raise ValueError('Transferred approved image is AMD64 only')
+    prepare(args.root, args.domain, transferred.get('application', RELEASE['amd64_image'] if platform.machine() == 'x86_64' else 'ARM64-PIN-PENDING'),
+            ipv6=args.ipv6, caddy_image=transferred.get('caddy'))
     if args.mode == 'prepare':
         print('PREPARED; no containers, firewall, provider account or paid resource changed')
         return
@@ -240,7 +297,11 @@ def main():
             run(['apt-get', 'install', '-y', 'git'])
     else:
         run(['docker', 'compose', 'version'], stdout=subprocess.DEVNULL)
-    image = release_image(args.root)
+    if args.ipv6:
+        major = int(run(['docker', 'version', '--format', '{{.Server.Version}}'], capture_output=True).stdout.strip().split('.')[0])
+        if major < 28:
+            raise ValueError('Require Docker 28+ for the IPv6 NAT bridge; do not silently disable worker egress')
+    image = preloaded_images(args.preloaded_receipt, load=True)['application'] if transferred else release_image(args.root)
     # Replace only the bootstrap-owned ARM pending placeholder, never an operator configuration.
     env = args.root / 'compose.env'
     if 'ARM64-PIN-PENDING' in env.read_text():
@@ -268,9 +329,14 @@ def main():
     verify_persistence(args.root)
     systemd(args.root)
     digest = run(['docker', 'image', 'inspect', '--format', '{{.Id}}', image], capture_output=True).stdout.strip()
-    config_hash = hashlib.sha256(b''.join((HERE / n).read_bytes() for n in ('release.json', 'compose.yml', 'Caddyfile', 'bootstrap.py', 'host-monitor.py', 'offsite.py', 'external-probe.py'))).hexdigest()
+    # Hash the configuration actually generated for this host, including domain,
+    # transferred image IDs, IPv6 network and memory limits. Never publish its contents.
+    config_hash = hashlib.sha256(b''.join((args.root / n).read_bytes() for n in ('compose.yml', 'Caddyfile', 'compose.env', 'runtime.env')) +
+                                b''.join((HERE / n).read_bytes() for n in ('release.json', 'bootstrap.py', 'host-monitor.py', 'offsite.py', 'external-probe.py'))).hexdigest()
     receipt = {**RELEASE, 'image': image, 'image_config_digest': digest, 'configuration_sha256': config_hash,
                'deployment_timestamp': datetime.now(timezone.utc).isoformat(), 'container_restart': 'PASS', 'container_recreation': 'PASS',
+               'architecture_variant': 'compose-local-block-dual-stack' if args.ipv6 else 'compose-local-block-ipv4',
+               'private_image_transfer': bool(transferred),
                'host_reboot': 'NOT TESTED', 'public_https': 'NOT VERIFIED', 'offsite_restore': 'NOT VERIFIED'}
     (args.root / 'deployment-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print('DEPLOYED; container persistence verified. External HTTPS, reboot and off-site restore remain separate checks.')
