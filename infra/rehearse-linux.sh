@@ -83,6 +83,41 @@ PY
 if sudo python3 infra/offsite.py restore --root "$task_root" --destination "drill:$task_offsite/objects" --identity-file "$task_offsite/identity.key" --object "$task_object" --output "$task_root/evidence/tampered" >/dev/null 2>&1; then
     echo 'Tampered ciphertext accepted'; exit 1
 fi
+# Trial expiry rehearsal uses only the disposable synthetic fixture, never owner account evidence.
+sudo python3 - "$task_root" <<'PY'
+import json,sys
+from pathlib import Path
+from datetime import datetime,timedelta,timezone
+r=Path(sys.argv[1]);now=datetime.now(timezone.utc)
+(r/'TRIAL_REQUIRED').write_text('SYNTHETIC TRIAL REHEARSAL')
+p=r/'trial-evidence.json';p.write_text(json.dumps({'policy':'TEMPORARY_FREE_TRIAL_NO_UPGRADE_V1','account_type':'FREE_TRIAL','nonbillable':True,'upgraded':False,'captured_at':(now-timedelta(hours=13)).isoformat(),'remaining_credit_usd':300,'shutdown_at':(now+timedelta(days=2)).isoformat(),'expires_at':(now+timedelta(days=10)).isoformat(),'official_terms_checked_on':now.date().isoformat(),'billing_reporting_lag_reviewed':True,'credit_source':'SYNTHETIC REHEARSAL','credit_evidence_sha256':'a'*64}));p.chmod(0o600)
+# Trial containers wait for a successful systemd guard after a host or Docker restart.
+p=r/'compose.yml';p.write_text(p.read_text().replace('restart: unless-stopped',"restart: 'no'"))
+PY
+compose up -d app backup proxy >/dev/null
+if sudo python3 infra/trial_guard.py --root "$task_root" --apply >/dev/null; then
+    echo 'Stale trial evidence accepted'; exit 1
+fi
+sudo test -f "$task_root/STOP_WRITES"
+if [ -n "$(compose ps --status running -q)" ]; then
+    echo 'Trial guard did not stop containers'; exit 1
+fi
+sudo systemctl restart docker
+if [ -n "$(compose ps --status running -q)" ]; then
+    echo 'Docker restarted a trial writer without authorization'; exit 1
+fi
+sudo python3 - "$task_root" <<'PY'
+import sqlite3,sys
+from pathlib import Path
+r=Path(sys.argv[1]);saved=r/'evidence/trial-stop/flood.sqlite3'
+assert saved.is_file()
+with sqlite3.connect(saved.as_uri()+'?mode=ro',uri=True) as c:
+ assert c.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
+# Only this named disposable CI fixture is reset for the separate corruption drill.
+assert r.name.startswith('dawei-rehearsal.')
+(r/'STOP_WRITES').unlink();(r/'TRIAL_REQUIRED').unlink();(r/'trial-evidence.json').unlink()
+PY
+compose up -d app backup proxy >/dev/null
 compose stop app >/dev/null
 sudo python3 - "$task_root" <<'PY'
 import shutil,sys
@@ -101,4 +136,5 @@ r=Path(sys.argv[1]);assert (r/'data/flood.sqlite3').read_bytes()==b'SYNTHETIC CO
 copies=list((r/'evidence').glob('incident-*/flood.sqlite3'));assert len(copies)==1;assert copies[0].read_bytes()==b'SYNTHETIC CORRUPTION FIXTURE'
 PY
 echo 'Linux preparation/idempotence/Compose/restart/recreation/encrypted roundtrip/tamper/capacity/corruption latch: PASS'
+echo 'Trial stale-evidence stop, evidence preservation and Docker restart with writers stopped: PASS'
 echo 'Local rclone test destination is a transport fixture, not production off-site commissioning.'

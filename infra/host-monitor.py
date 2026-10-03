@@ -4,6 +4,7 @@ import argparse
 from datetime import datetime, timezone
 import json
 import os
+import runpy
 from pathlib import Path
 import shutil
 import sqlite3
@@ -76,6 +77,10 @@ def main():
     args = parser.parse_args()
     os.umask(0o077)
     root = args.root.resolve()
+    trial = runpy.run_path(str(Path(__file__).with_name('trial_guard.py')))['guard'](root, apply=args.apply)
+    if trial['status'] == 'STOP WRITES':
+        print(json.dumps({'trial': trial}))
+        return 1
     now = time.time()
     database = database_status(root / 'data' / 'flood.sqlite3')
     free = shutil.disk_usage(root).free

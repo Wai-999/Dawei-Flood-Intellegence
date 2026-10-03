@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import runpy
 import secrets
 import shutil
 import socket
@@ -91,9 +92,15 @@ def install_docker(distro, codename):
     run(['systemctl', 'enable', '--now', 'docker'])
 
 
-def prepare(root, domain, image, *, ipv6=False, caddy_image=None):
+def prepare(root, domain, image, *, ipv6=False, caddy_image=None, trial_evidence=None, require_trial_recovery=True):
     if (root / 'STOP_WRITES').exists():
         raise ValueError('STOP_WRITES incident latch exists; use isolated recovery before restarting')
+    if trial_evidence:
+        if trial_evidence.is_symlink() or trial_evidence.stat().st_mode & 0o077:
+            raise ValueError('Trial evidence must be a private regular file')
+        runpy.run_path(str(HERE / 'trial_guard.py'))['validate_trial'](json.loads(trial_evidence.read_text()), require_recovery=require_trial_recovery)
+    if (root / 'TRIAL_REQUIRED').exists() and not trial_evidence:
+        raise ValueError('A trial host cannot silently switch to sustainable mode')
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     root.chmod(0o700)
     for name in ('data', 'backups', 'secrets', 'caddy-data', 'caddy-config', 'evidence', 'encrypted'):
@@ -129,9 +136,14 @@ def prepare(root, domain, image, *, ipv6=False, caddy_image=None):
         for name, limit in [('maintenance', '128m'), ('app', '256m'), ('backup', '128m'),
                             ('telegram', '96m'), ('sheets', '128m'), ('proxy', '64m')]:
             configuration = configuration.replace(f'  {name}:\n', f'  {name}:\n    mem_limit: {limit}\n    pids_limit: 128\n')
+    if trial_evidence:
+        # Docker must not restart writers before systemd checks trial expiry after reboot.
+        configuration = configuration.replace('restart: unless-stopped', "restart: 'no'")
+        write_once(root / 'TRIAL_REQUIRED', 'TEMPORARY_FREE_TRIAL_NO_UPGRADE_V1\n')
+        runpy.run_path(str(HERE / 'trial_guard.py'))['install_evidence'](root, json.loads(trial_evidence.read_text()), require_recovery=require_trial_recovery)
     write_once(root / 'compose.yml', configuration)
     write_once(root / 'Caddyfile', (HERE / 'Caddyfile').read_text(), 0o644)
-    for name in ('host-monitor.py', 'offsite.py', 'external-probe.py'):
+    for name in ('host-monitor.py', 'offsite.py', 'external-probe.py', 'trial_guard.py'):
         target = root / name
         write_once(target, (HERE / name).read_text(), 0o700)
 
@@ -251,7 +263,7 @@ def systemd(root):
     docker = shutil.which('docker')
     command = f'{docker} compose --env-file {root}/compose.env -f {root}/compose.yml'
     write_once(Path('/etc/systemd/system/dawei-pilot.service'),
-               f'[Unit]\nDescription=Dawei pinned pilot\nRequires=docker.service\nAfter=docker.service network-online.target\nConditionPathExists=!{root}/STOP_WRITES\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart={command} up -d app backup proxy\nExecStop={command} stop\n[Install]\nWantedBy=multi-user.target\n', 0o644)
+               f'[Unit]\nDescription=Dawei pinned pilot\nRequires=docker.service\nAfter=docker.service network-online.target\nConditionPathExists=!{root}/STOP_WRITES\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStartPre=/usr/bin/python3 {root}/trial_guard.py --root {root} --apply\nExecStart={command} up -d app backup proxy\nExecStop={command} stop\n[Install]\nWantedBy=multi-user.target\n', 0o644)
     write_once(Path('/etc/systemd/system/dawei-monitor.service'),
                f'[Unit]\nDescription=Dawei private host health and corruption guard\n[Service]\nType=oneshot\nExecStart=/usr/bin/python3 {root}/host-monitor.py --root {root} --apply\nTimeoutStartSec=180\n', 0o644)
     write_once(Path('/etc/systemd/system/dawei-monitor.timer'),
@@ -270,6 +282,7 @@ def main():
     parser.add_argument('--ssh-cidr')
     parser.add_argument('--admin-user', help='Explicit named operator; password generated only on first creation')
     parser.add_argument('--ipv6', action='store_true', help='Dual-stack private Docker network and small-VM resource limits')
+    parser.add_argument('--trial-evidence', type=Path, help='Private non-billable trial evidence with actual independent restore')
     parser.add_argument('--preloaded-receipt', type=Path, help='Trusted private IAP-transferred image receipt; no registry pull')
     args = parser.parse_args()
     validate(args.root, args.domain)
@@ -284,7 +297,7 @@ def main():
     if transferred and platform.machine() != 'x86_64':
         raise ValueError('Transferred approved image is AMD64 only')
     prepare(args.root, args.domain, transferred.get('application', RELEASE['amd64_image'] if platform.machine() == 'x86_64' else 'ARM64-PIN-PENDING'),
-            ipv6=args.ipv6, caddy_image=transferred.get('caddy'))
+            ipv6=args.ipv6, trial_evidence=args.trial_evidence, require_trial_recovery=args.mode == 'deploy', caddy_image=transferred.get('caddy'))
     if args.mode == 'prepare':
         print('PREPARED; no containers, firewall, provider account or paid resource changed')
         return
@@ -332,7 +345,7 @@ def main():
     # Hash the configuration actually generated for this host, including domain,
     # transferred image IDs, IPv6 network and memory limits. Never publish its contents.
     config_hash = hashlib.sha256(b''.join((args.root / n).read_bytes() for n in ('compose.yml', 'Caddyfile', 'compose.env', 'runtime.env')) +
-                                b''.join((HERE / n).read_bytes() for n in ('release.json', 'bootstrap.py', 'host-monitor.py', 'offsite.py', 'external-probe.py'))).hexdigest()
+                                b''.join((HERE / n).read_bytes() for n in ('release.json', 'bootstrap.py', 'host-monitor.py', 'offsite.py', 'external-probe.py', 'trial_guard.py'))).hexdigest()
     receipt = {**RELEASE, 'image': image, 'image_config_digest': digest, 'configuration_sha256': config_hash,
                'deployment_timestamp': datetime.now(timezone.utc).isoformat(), 'container_restart': 'PASS', 'container_recreation': 'PASS',
                'architecture_variant': 'compose-local-block-dual-stack' if args.ipv6 else 'compose-local-block-ipv4',

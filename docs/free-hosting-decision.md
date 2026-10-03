@@ -4,6 +4,9 @@ This decision implements the latest owner instruction: Oracle is excluded. Earli
 
 ## Current decision and actual state
 
+**LATEST OWNER CHANGE:** use the existing free allowance; no purchase or paid continuation. The earlier sustainable-only answer below is historical and superseded. The selected execution is an explicit non-billable trial pilot, **TEMPORARY FREE — NOT SUSTAINABLE**, documented in [trial-pilot.md](trial-pilot.md). The sustainable gate remains unchanged; `--cost-policy temporary-trial` has separate evidence and recovery requirements. SDK authorization, required API activation and full account resource inventory now succeeded. No host is provisioned at this checkpoint. Do not request a paid conversion.
+
+
 **Application RELEASED; non-Oracle INFRASTRUCTURE-SELECTED, conditional on account and cost verification. Production is not HOST-PROVISIONED or DEPLOYED.** Approved source remains `c05aba604a9827a3f5cc55f5fc8ba478e9ae54dc` / `v0.1.0-pilot`. Immutable application and Caddy pins remain in `infra/release.json`.
 
 Preferred architecture: eligible Google Free Tier AMD64 VM → local persistent block disk → Caddy / Compose / unchanged Gunicorn application / single-host SQLite / independent backup worker. Public networking has IPv6 only; private IPv4 remains available for metadata and IAP administrative access. Docker's private network also has IPv6 so integrations can reach IPv6 APIs. A stable reserved IPv6 address supports DuckDNS AAAA without a continuously running owner computer. **IPv4-only users cannot reach this direct endpoint.** IPv4 reachability is an additional pilot acceptance gate, not a fabricated capability.
@@ -77,13 +80,13 @@ Current public DNS probes found IPv6 for Telegram, OAuth, Sheets, Storage, Docke
 
 **NOT TESTABLE — no authorized cloud host/account:** actual whole-account eligibility/usage, creation APIs, installed firewall/cost cap, VM IPv6/API connectivity, RAM capacity under real workload, external DNS/TLS/cookie/Host/proxy/auth checks at production, restart/recreation/reboot on the selected VM, real encrypted GCS round trip and isolated restore, integrations and accountable pilot/field acceptance. Previous synthetic staging tests are not production commissioning.
 
-## Minimal owner handoff and automatic continuation
+## Historical sustainable-only handoff — superseded by the latest trial authorization
 
 **Current Category D: owner authorization of eligible non-trial Google Cloud billing for the intended project at [Cloud Billing](https://console.cloud.google.com/billing).** Authenticated browser access now shows a trial billing account and a linked project. The owner explicitly chose **“Keep sustainable non-trial hosting only”** when offered a temporary pilot exception. The trial is therefore **REJECTED for this production deployment**; the existing non-trial guard remains unchanged. Converting a trial to a Paid billing account enables charges outside Free Tier/remaining credit. Only the owner may make that financial decision and complete any legal/MFA/payment steps; the agent must not click Upgrade, link billing, accept terms or activate paid resources. An eligible non-trial account still requires actual aggregate usage and traffic-cost verification before any free-only provisioning. Authorize the intended account/project privately; the agent will discover the remaining information. Do not post passwords, MFA codes, payment details, tokens or keys in chat, GitHub or logs.
 
 After authorization: inventory all billing-linked projects and actual historical usage → verify current terms and traffic cost controls → provision only eligible resources → private pinned IAP bootstrap → request DuckDNS authorization only if still missing → externally verify IPv6 HTTPS and evaluate safe IPv4 reachability → restart/recreation/reboot persistence → encrypted private GCS download and independent isolated restore → Telegram → Sheets → human acceptance. If strict cost controls cannot be established, no resource is created; proceed to the next authorized safe alternative. The scheduled follow-up stays quiet while the owner boundary is unchanged.
 
-## Sustainable-only account checkpoint — 2026-10-03, 22:30 UTC
+## Historical sustainable-only account checkpoint — 2026-10-03, 22:30 UTC
 
 - **TESTED:** existing authorized browser access now exposes a trial billing account and one displayed linked project. The usage report displays zero cost but explicitly warns reporting may lag more than 24 hours; aggregate monthly usage/headroom remains unverified. The Compute Engine page requires API activation, which was not performed. Private account identities, credit/expiry details and screenshot remain in ignored local evidence.
 - **REJECTED:** the trial as a production route, following the owner's explicit sustainable non-trial-only decision. No temporary exception, billing upgrade, API activation or provisioning was authorized or executed. The existing guard still requires `ACTIVE_NON_TRIAL`; no evidence flags were manufactured.
