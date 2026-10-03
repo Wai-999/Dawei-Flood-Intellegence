@@ -2,6 +2,18 @@
 
 Recorded 2026-10-03 UTC / 2026-10-02 America/Los_Angeles. **FINAL STATE: EXTERNAL-BLOCKED.** Repository and local-container checks pass. No production host, trusted public HTTPS endpoint, live-provider commissioning or field-owner acceptance is evidenced.
 
+## Release-gate recheck — 2026-10-03 01:44:15 UTC
+
+**Next boundary: OWNER RELEASE APPROVAL REQUIRED.** The next-action document requires explicit owner approval; no approval was found in the conversation or GitHub review evidence. Merge and tagging have not occurred. The minimum next action is owner approval of [PR #1](https://github.com/Wai-999/Dawei-Flood-Intellegence/pull/1) and pilot tag `v0.1.0-pilot`, subject to current green checks and an unchanged approved application tree.
+
+- Independently fetched current PR head: `8d697b7e6241f64e07e8878b1308e83b80315035`; base/main: `15ff7782e3920eac2333d716d26bf9554def28b0`. PR is open, unmerged, mergeable and clean. No newer commits than the commissioning baseline were present before this documentation update.
+- Four current Actions checks passed: test-security and container on both [PR run 37086125592](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37086125592) and [push run 37086123134](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37086123134). No submitted reviews, requested reviewers, issue/review comments or unresolved review threads were present.
+- Main reports `protected: false`; repository/inherited ruleset listing is empty. The integration cannot read the administrative classic-protection endpoint (403); it was not granted broader permissions. Owner approval remains an explicit release gate independently of repository enforcement.
+- Current remote tree `35d80803b8f51e0ef7a3aa9ffcededd1d7e89b27` matches the clean local checkout. All 64 tracked files were inspected for private artifact paths; no operational DB, snapshots, `.env`, secrets, backup/signing files, exports or private drill artifacts were tracked. Secret/privacy scan passed again.
+- The historical `dawei-flood:commissioning-check` image was absent from the current Docker daemon. Rebuilt current candidate as `dawei-flood:release-gate`; build succeeded. New local ARM64 manifest-list digest: `sha256:64df27d0691e21efbd2eb4cf1380a32722605cadad95fc3d30fb3b5cde0c1d12`; runtime image configuration: `sha256:e9b52f53bcd5fda468832ceefd30ed45534c69b5b484b6dedb2a44ac56583945`. This is a local candidate artifact, not a published release image.
+- Re-run **53/53 tests passed in 4.823 seconds** with authorized loopback access. An initial restricted-sandbox attempt could not bind sockets for four API test setups; the permitted run passed all cases without source changes. Both container smokes passed again, including non-root/readiness/private-file checks, signed backup/isolated restore/source/audit/schema checks, restart and container recreation. Compose and pinned Caddy validation passed.
+- No P0/P1 regression was found in these checks. This documentation-only evidence update must also receive green CI before any approved merge. No production services or provider credentials were configured, and no deployment, pilot or owner operational acceptance is claimed.
+
 ## Release and validation evidence
 
 - Repository: [Wai-999/Dawei-Flood-Intellegence](https://github.com/Wai-999/Dawei-Flood-Intellegence).
