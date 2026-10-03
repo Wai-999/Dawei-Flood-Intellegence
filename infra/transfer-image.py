@@ -55,7 +55,7 @@ def main():
         # Docker save requires a name/tag; a digest-only pull often has no tag.
         tag = 'dawei-transfer/' + label + ':' + observed['Id'].split(':')[1][:20]
         # A multi-platform local store may also contain ARM64 under the same digest.
-        run(['docker', 'tag', observed['Id'], tag])
+        run(['docker', 'tag', image, tag])
         run(['docker', 'save', '--platform', 'linux/amd64', '--output', str(archive), tag])
         receipt['images'].append({'kind': label, 'registry_digest': image, 'image_config_digest': observed['Id'],
                                   'tag': tag, 'archive': archive.name, 'archive_sha256': digest(archive)})
