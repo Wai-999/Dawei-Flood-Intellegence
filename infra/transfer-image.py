@@ -24,6 +24,17 @@ def digest(path):
     return value.hexdigest()
 
 
+def canonical_digest(reference):
+    repository, value = reference.rsplit('@', 1)
+    prefix, slash, name = repository.rpartition('/')
+    name = name.split(':', 1)[0]
+    repository = prefix + slash + name
+    for docker_prefix in ('docker.io/library/', 'index.docker.io/library/'):
+        if repository.startswith(docker_prefix):
+            repository = repository[len(docker_prefix):]
+    return repository + '@' + value
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True, help='Private ignored directory, never a tracked source directory')
@@ -38,7 +49,7 @@ def main():
     for label, image in [('application', RELEASE['amd64_image']), ('caddy', RELEASE['caddy_image'])]:
         run(['docker', 'pull', '--platform', 'linux/amd64', image])
         observed = json.loads(run(['docker', 'image', 'inspect', image]).stdout)[0]
-        if observed['Architecture'] != 'amd64' or observed['Os'] != 'linux' or image not in observed.get('RepoDigests', []):
+        if observed['Architecture'] != 'amd64' or observed['Os'] != 'linux' or canonical_digest(image) not in {canonical_digest(x) for x in observed.get('RepoDigests', [])}:
             raise ValueError('Registry digest or architecture does not match approved pin')
         archive = root / (label + '.tar')
         # Docker save requires a name/tag; a digest-only pull often has no tag.
@@ -54,6 +65,9 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except (ValueError, OSError, KeyError, subprocess.SubprocessError):
+    except ValueError as error:
+        print('Image transfer preparation refused: ' + str(error))
+        raise SystemExit(1)
+    except (OSError, KeyError, subprocess.SubprocessError):
         print('Image transfer preparation stopped safely; no private command output printed.')
         raise SystemExit(1)

@@ -13,6 +13,7 @@ from test_infrastructure import module
 gcp = module('gcp-free')
 bootstrap = module('bootstrap')
 dns = module('duckdns-update')
+transfer = module('transfer-image')
 NOW = datetime(2026, 10, 3, 16, tzinfo=timezone.utc)
 PROJECT = 'synthetic-project'
 ACCOUNT = 'AAAAAA-BBBBBB-CCCCCC'
@@ -45,6 +46,12 @@ class FreeHostingTests(unittest.TestCase):
         self.assertEqual(value['bucket']['softDeletePolicy']['retentionDurationSeconds'], '0')
         self.assertFalse(value['bucket']['versioning']['enabled'])
         self.assertNotIn('startup-script', json.dumps(vm))
+
+    def test_registry_digest_normalizes_tag_without_changing_hash_or_registry_port(self):
+        digest = 'sha256:' + 'a' * 64
+        self.assertEqual(transfer.canonical_digest('caddy:2-alpine@' + digest), 'caddy@' + digest)
+        self.assertEqual(transfer.canonical_digest('docker.io/library/caddy@' + digest), 'caddy@' + digest)
+        self.assertEqual(transfer.canonical_digest('registry.example:5000/pilot:v1@' + digest), 'registry.example:5000/pilot@' + digest)
 
     def test_private_aggregate_usage_required_not_resource_quota(self):
         observed, usage = evidence()
