@@ -1,10 +1,21 @@
 # Dawei Flood Intelligence — commissioning report
 
-Recorded 2026-10-03 UTC / 2026-10-02 America/Los_Angeles. **FINAL STATE: EXTERNAL-BLOCKED.** Repository and local-container checks pass. No production host, trusted public HTTPS endpoint, live-provider commissioning or field-owner acceptance is evidenced.
+Updated 2026-10-03 UTC / 2026-10-02 America/Los_Angeles. **FINAL STATE: EXTERNAL-BLOCKED.** Pilot source release and immutable image are published and tested. Production host access, trusted public HTTPS, live-provider commissioning and field-owner acceptance remain external gates.
 
-## Release-gate recheck — 2026-10-03 01:44:15 UTC
+## Pilot release completed — 2026-10-03 06:27:24 UTC
 
-**Next boundary: OWNER RELEASE APPROVAL REQUIRED.** The next-action document requires explicit owner approval; no approval was found in the conversation or GitHub review evidence. Merge and tagging have not occurred. The minimum next action is owner approval of [PR #1](https://github.com/Wai-999/Dawei-Flood-Intellegence/pull/1) and pilot tag `v0.1.0-pilot`, subject to current green checks and an unchanged approved application tree.
+**Next boundary: PRODUCTION HOST ACCESS REQUIRED.** The owner release gate is complete. Deployment requires an operator-controlled Linux host/account, approved SSH/access method, intended domain and DNS control. No production `.env`, private secret directory or project SSH host is configured in the available environment. No cloud deployment CLI/account is configured; no VM, domain or paid service was purchased. Do not request provider secrets before the host exists.
+
+- Repository owner `Wai-999` merged [PR #1](https://github.com/Wai-999/Dawei-Flood-Intellegence/pull/1) at `2026-10-03T01:52:16Z`. Validated merge commit: `c05aba604a9827a3f5cc55f5fc8ba478e9ae54dc`; source tree: `51959b0c47523fa41c2f271615edfb647f45b81f`, identical to the reviewed candidate.
+- [Post-merge validation run 37087732219](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37087732219) completed successfully on that merge commit. No unresolved reviews/threads or application changes were found during the release recheck.
+- Published [Dawei Flood Intelligence v0.1.0-pilot](https://github.com/Wai-999/Dawei-Flood-Intellegence/releases/tag/v0.1.0-pilot), marked **Pre-release**, at `2026-10-03T06:21:52Z`. Verified `refs/tags/v0.1.0-pilot` points exactly to the validated merge commit. SQLite schema: **2**. Only source/application artifacts are included; no operational files were attached.
+- [Tag validation run 37102805964](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37102805964) and [release-image run 37102805989](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37102805989) both passed on the tagged commit. Release validation ran all 53 tests, explicit ES-module/compilation checks, dependency audit, Bandit, privacy scan, Docker readiness/private-file tests, signed restore/container recreation and Caddy checks before image publication.
+- Immutable published image: `ghcr.io/wai-999/dawei-flood-intellegence@sha256:c6d38231fc37097dfef73643114de4f028369f886401b49ff130d4f31cdfff98` (Linux AMD64). Digest verified in successful build/push output and by pulling the artifact. **Both smoke scripts passed locally against this exact downloaded digest**, including signed backup/source/audit/schema restore and database persistence after container recreation. Disposable resources were removed; no public endpoint was opened.
+- Release limitations and commissioning requirements are included in the public prerelease notes. This source release/image does not establish production deployment, host recovery, commissioned integrations or field acceptance. Deploy the pinned tag/commit/image, not an uncommitted tree or a later documentation-only commit.
+
+## Historical release-gate recheck — 2026-10-03 01:44:15 UTC
+
+At this earlier inspection the owner release gate was still open. The later completed-release evidence above supersedes that blocker; the following facts preserve the dated validation record.
 
 - Independently fetched current PR head: `8d697b7e6241f64e07e8878b1308e83b80315035`; base/main: `15ff7782e3920eac2333d716d26bf9554def28b0`. PR is open, unmerged, mergeable and clean. No newer commits than the commissioning baseline were present before this documentation update.
 - Four current Actions checks passed: test-security and container on both [PR run 37086125592](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37086125592) and [push run 37086123134](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37086123134). No submitted reviews, requested reviewers, issue/review comments or unresolved review threads were present.
@@ -14,7 +25,7 @@ Recorded 2026-10-03 UTC / 2026-10-02 America/Los_Angeles. **FINAL STATE: EXTERNA
 - Re-run **53/53 tests passed in 4.823 seconds** with authorized loopback access. An initial restricted-sandbox attempt could not bind sockets for four API test setups; the permitted run passed all cases without source changes. Both container smokes passed again, including non-root/readiness/private-file checks, signed backup/isolated restore/source/audit/schema checks, restart and container recreation. Compose and pinned Caddy validation passed.
 - No P0/P1 regression was found in these checks. This documentation-only evidence update must also receive green CI before any approved merge. No production services or provider credentials were configured, and no deployment, pilot or owner operational acceptance is claimed.
 
-## Release and validation evidence
+## Historical pre-release validation evidence
 
 - Repository: [Wai-999/Dawei-Flood-Intellegence](https://github.com/Wai-999/Dawei-Flood-Intellegence).
 - Release: production-readiness candidate in [PR #1](https://github.com/Wai-999/Dawei-Flood-Intellegence/pull/1); merge approval and `v0.1.0-pilot` tag remain pending. There were no submitted PR reviews at inspection. Passing CI does not constitute owner approval.
@@ -64,12 +75,11 @@ Detailed result, bundle, restored DB and private key remain in ignored private s
 
 ## Outstanding external actions, in order
 
-1. **Release owner:** approve the reviewed production-readiness PR and pilot tag after current checks pass. Merge/tag has not occurred. An approved source release alone is not a deployment.
-2. **Infrastructure operator:** supply an authorized Linux VM/account, domain/subdomain, DNS control, TLS contact and approved access method. No provider purchase is authorized or made. Use the exact approved release, private `.env`/secrets, persistent encrypted storage, restricted SSH/firewall and named accounts; start only app + backup + proxy. See [deployment](deployment.md).
-3. **Operations owner:** authorize encrypted off-site storage, separately held recovery key, backup retention and meaningful alert destination. Prove external HTTPS/security, readiness, host reboot persistence and isolated hosted restore; record measured RPO/RTO and source/audit parity. See [operations](operations.md).
-4. **Provider owners:** place Telegram and Google secrets in private host files/secret manager, approve individual sender mappings and a test destination, then perform real round trips, correction/removal, unauthorized-input and restart/retry checks. Preserve unrelated Sheets tabs/cells. No secrets should be supplied in chat or committed.
-5. **Data/domain owner:** approve the settlement registry and coordinate provenance/aliases, review quarantined claims, approve analytical/freshness parameters or explicitly defer ranking, and approve retention/export/sharing/privileged access/incident policies.
-6. **Field/operational owner:** provide a small named pilot group (suggested 2–5 contributors, 1–2 reviewers, coordinator and administrator), conduct Burmese terminology review, execute the acceptance cases below, resolve critical defects and record operational acceptance.
+1. **Infrastructure operator:** supply an authorized Linux VM/account, domain/subdomain, DNS control, TLS contact and approved access method. No provider purchase was made. Use the exact approved pilot release, private `.env`/secrets, persistent encrypted storage, restricted SSH/firewall and named accounts; start only app + backup + proxy. See [deployment](deployment.md).
+2. **Operations owner:** authorize encrypted off-site storage, separately held recovery key, backup retention and meaningful alert destination. Prove external HTTPS/security, readiness, host reboot persistence and isolated hosted restore; record measured RPO/RTO and source/audit parity. See [operations](operations.md).
+3. **Provider owners:** place Telegram and Google secrets in private host files/secret manager, approve individual sender mappings and a test destination, then perform real round trips, correction/removal, unauthorized-input and restart/retry checks. Preserve unrelated Sheets tabs/cells. No secrets should be supplied in chat or committed.
+4. **Data/domain owner:** approve the settlement registry and coordinate provenance/aliases, review quarantined claims, approve analytical/freshness parameters or explicitly defer ranking, and approve retention/export/sharing/privileged access/incident policies.
+5. **Field/operational owner:** provide a small named pilot group (suggested 2–5 contributors, 1–2 reviewers, coordinator and administrator), conduct Burmese terminology review, execute the acceptance cases below, resolve critical defects and record operational acceptance.
 
 Only these external authority/access/data/human boundaries prevent further operational commissioning. The original Google Sheet remains unchanged.
 
@@ -93,4 +103,4 @@ The partial source inventory is not a regional denominator; no report means unkn
 
 Bayesian calibration, Monte Carlo, SMS, advanced spatial silent-zone inference, choropleths, PostgreSQL/PostGIS, multi-host HA and public analytics remain deferred. Migration is required before multi-host/shared-network DB operation or when measured sustained contention/HA/spatial requirements justify it. These features do not block the bounded pilot unless owners explicitly require them.
 
-**FINAL STATE: EXTERNAL-BLOCKED — locally tested release candidate; not deployed, commissioned or operational.**
+**FINAL STATE: EXTERNAL-BLOCKED — published and tested pilot source/image; production hosting and commissioning remain pending.**
