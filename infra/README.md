@@ -24,7 +24,7 @@ Deployment persistence checks write a separate synthetic infrastructure fixture,
 
 The default 8 GiB prefix quota is a guard, not proof of whole-account cost safety. Check all buckets, requests, egress and account allowances before enabling a destination. A successful upload receipt is not a restore receipt. Keep both the age identity and trusted signing key independently escrowed and out of source, logs and the cloud application container.
 
-`external-probe.py --domain floodintelligence.duckdns.org` verifies DNS, TCP/TLS, hostname/certificate expiry, HTTP redirect, HSTS, healthy JSON, anonymous API rejection and invalid Host rejection. Secure-cookie/authenticated checks require a private named test account and are separate. The GitHub external-readiness schedule is disabled unless the repository variable `FLOOD_MONITOR_ENABLED` is explicitly set to `true` after real production HTTPS works. It sends no credentials or operational data to GitHub.
+`external-probe.py --hostname floodintelligence.duckdns.org` verifies DNS, TCP/TLS, hostname/certificate expiry, HTTP redirect, HSTS, healthy JSON, anonymous API rejection and invalid Host rejection. Secure-cookie/authenticated checks require a private named test account and are separate. The GitHub external-readiness schedule is disabled unless the repository variable `FLOOD_MONITOR_ENABLED` is explicitly set to `true` after real production HTTPS works. It sends no credentials or operational data to GitHub.
 
 `duckdns-update.py` reads a mode-600 owner token file and updates the fixed hostname via HTTPS with bounded retries. It never prints the token or request URL. DNS acceptance and external propagation are distinct checks. Do not commit tokens or request them in a public issue or chat.
 
