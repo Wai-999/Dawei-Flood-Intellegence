@@ -12,7 +12,7 @@ The persistent target is an owner-authorized Always Free Linux VM with local blo
 
 Application directories are private host bind mounts; the app runs as UID 10001 with a read-only root filesystem, temporary filesystem, dropped capabilities and no privilege escalation. Telegram and Sheets are disabled by default and contain no credentials. An explicit named administrator receives a generated initial password stored only in a private host file; retrieve privately and follow the existing owner access policy. No humanitarian data, geography, weights or governance approvals are generated.
 
-AMD64 pulls the immutable published digest. ARM64 fetches exactly the approved commit, checks a clean checkout, builds natively, runs both approved smoke scripts and freezes the resulting local image ID. That ARM path is prepared, but no Oracle ARM host has yet been provisioned or tested. An existing different image pin causes a refusal, not a silent update.
+AMD64 pulls the immutable published digest. ARM64 fetches exactly the approved commit, checks a clean checkout, builds natively, runs both approved smoke scripts and freezes the resulting local image ID. A native ARM64 Linux container built from that exact source passed both smoke scripts locally; no Oracle ARM host has yet been provisioned or tested. An existing different image pin causes a refusal, not a silent update.
 
 Deployment persistence checks write a separate synthetic infrastructure fixture, restart the app and read it, then recreate the app container and read it. They do not invent operational claims. App restart/recreation introduces a brief maintenance interruption. Host reboot and external HTTPS are separate explicit checks; the deployment receipt does not fabricate either.
 
@@ -34,4 +34,4 @@ The default 8 GiB prefix quota is a guard, not proof of whole-account cost safet
 
 `sh infra/rehearse-linux.sh` creates a separate disposable Linux Compose stack and private synthetic fixtures. It verifies preparation twice, fixed network assignments, readiness, restart/recreation, encrypted transport/isolated restore, tamper rejection, quota refusal and corruption stop/preserve behavior. The rclone local transport fixture is not an off-site production destination. Its unique Compose project/subnet and cleanup scope avoid changing another running pilot.
 
-Production installation/firewall, Oracle native ARM, host reboot, DuckDNS ACME issuance, actual bucket restoration, provider integrations and field acceptance remain unverified until the corresponding live owner-authorized resources exist.
+Production installation/firewall, Oracle ARM host deployment, host reboot, DuckDNS ACME issuance, actual bucket restoration, provider integrations and field acceptance remain unverified until the corresponding live owner-authorized resources exist.
