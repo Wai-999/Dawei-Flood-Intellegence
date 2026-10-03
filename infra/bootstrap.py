@@ -329,9 +329,14 @@ def main():
     verify_persistence(args.root)
     systemd(args.root)
     digest = run(['docker', 'image', 'inspect', '--format', '{{.Id}}', image], capture_output=True).stdout.strip()
-    config_hash = hashlib.sha256(b''.join((HERE / n).read_bytes() for n in ('release.json', 'compose.yml', 'Caddyfile', 'bootstrap.py', 'host-monitor.py', 'offsite.py', 'external-probe.py'))).hexdigest()
+    # Hash the configuration actually generated for this host, including domain,
+    # transferred image IDs, IPv6 network and memory limits. Never publish its contents.
+    config_hash = hashlib.sha256(b''.join((args.root / n).read_bytes() for n in ('compose.yml', 'Caddyfile', 'compose.env', 'runtime.env')) +
+                                b''.join((HERE / n).read_bytes() for n in ('release.json', 'bootstrap.py', 'host-monitor.py', 'offsite.py', 'external-probe.py'))).hexdigest()
     receipt = {**RELEASE, 'image': image, 'image_config_digest': digest, 'configuration_sha256': config_hash,
                'deployment_timestamp': datetime.now(timezone.utc).isoformat(), 'container_restart': 'PASS', 'container_recreation': 'PASS',
+               'architecture_variant': 'compose-local-block-dual-stack' if args.ipv6 else 'compose-local-block-ipv4',
+               'private_image_transfer': bool(transferred),
                'host_reboot': 'NOT TESTED', 'public_https': 'NOT VERIFIED', 'offsite_restore': 'NOT VERIFIED'}
     (args.root / 'deployment-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print('DEPLOYED; container persistence verified. External HTTPS, reboot and off-site restore remain separate checks.')
