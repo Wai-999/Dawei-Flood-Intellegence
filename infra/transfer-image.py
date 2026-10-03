@@ -48,7 +48,11 @@ def main():
     receipt = {'application_commit': RELEASE['commit'], 'created_at': datetime.now(timezone.utc).isoformat(), 'images': []}
     for label, image in [('application', RELEASE['amd64_image']), ('caddy', RELEASE['caddy_image'])]:
         run(['docker', 'pull', '--platform', 'linux/amd64', image])
-        observed = json.loads(run(['docker', 'image', 'inspect', '--platform', 'linux/amd64', image]).stdout)[0]
+        observed = json.loads(run(['docker', 'image', 'inspect', image]).stdout)[0]
+        select_platform = observed['Architecture'] != 'amd64'
+        if select_platform:
+            # Needed for mixed-platform containerd stores; legacy AMD64 stores lack this flag.
+            observed = json.loads(run(['docker', 'image', 'inspect', '--platform', 'linux/amd64', image]).stdout)[0]
         if observed['Architecture'] != 'amd64' or observed['Os'] != 'linux' or canonical_digest(image) not in {canonical_digest(x) for x in observed.get('RepoDigests', [])}:
             raise ValueError('Registry digest or architecture does not match approved pin')
         archive = root / (label + '.tar')
@@ -56,7 +60,7 @@ def main():
         tag = 'dawei-transfer/' + label + ':' + observed['Id'].split(':')[1][:20]
         # A multi-platform local store may also contain ARM64 under the same digest.
         run(['docker', 'tag', image, tag])
-        run(['docker', 'save', '--platform', 'linux/amd64', '--output', str(archive), tag])
+        run(['docker', 'save', *(['--platform', 'linux/amd64'] if select_platform else []), '--output', str(archive), tag])
         receipt['images'].append({'kind': label, 'registry_digest': image, 'image_config_digest': observed['Id'],
                                   'tag': tag, 'archive': archive.name, 'archive_sha256': digest(archive)})
     (root / 'image-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
