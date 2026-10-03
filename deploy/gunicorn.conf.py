@@ -1,0 +1,22 @@
+import os
+bind = '0.0.0.0:8000'
+workers = 1
+worker_class = 'gthread'
+threads = 4
+worker_connections = 64
+timeout = 30
+graceful_timeout = 30
+keepalive = 2
+max_requests = 2000
+max_requests_jitter = 100
+limit_request_line = 4094
+limit_request_fields = 50
+limit_request_field_size = 8190
+forwarded_allow_ips = '' # Application validates exact proxy peers itself.
+secure_scheme_headers = {}
+accesslog = None # Application JSON logs omit URLs, bodies and cookies.
+errorlog = '-'
+loglevel = 'warning'
+capture_output = True
+preload_app = False
+worker_tmp_dir = '/tmp'
