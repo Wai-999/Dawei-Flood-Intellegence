@@ -69,6 +69,28 @@ def verify_linux(root):
     return distro, info.get('VERSION_CODENAME', '').strip('"')
 
 
+def configure_ipv6_packages(root, source=Path('/etc/apt/sources.list.d/ubuntu.sources'),
+                            config=Path('/etc/apt/apt.conf.d/99-dawei-ipv6')):
+    """Use the signed official Ubuntu mirror when a GCE mirror has IPv4 only."""
+    if source.is_symlink() or config.is_symlink():
+        raise ValueError('Package configuration symlink refused')
+    if source.exists():
+        original = source.read_text()
+        replacement = re.sub(r'http://[a-z0-9-]+\.gce\.archive\.ubuntu\.com/ubuntu/?',
+                             'https://archive.ubuntu.com/ubuntu/', original)
+        replacement = replacement.replace('http://security.ubuntu.com/ubuntu',
+                                           'https://security.ubuntu.com/ubuntu')
+        if replacement != original:
+            if 'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg' not in original:
+                raise ValueError('Expected official Ubuntu archive signing key required')
+            evidence = root / 'evidence' / 'ubuntu.sources.before-ipv6'
+            if not evidence.exists():
+                write_once(evidence, original)
+            source.write_text(replacement)
+    write_once(config, 'Acquire::ForceIPv6 "true";\nAcquire::Retries "2";\n'
+                      'Acquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n', 0o644)
+
+
 def install_docker(distro, codename):
     if shutil.which('docker'):
         run(['docker', 'version'], stdout=subprocess.DEVNULL)
@@ -304,6 +326,8 @@ def main():
     if not Path('/run/systemd/system').exists():
         raise ValueError('Require systemd production host; preparation remains available in sandboxes')
     if args.allow_install:
+        if args.ipv6:
+            configure_ipv6_packages(args.root)
         install_docker(distro, codename)
         if platform.machine() == 'aarch64' and not shutil.which('git'):
             run(['apt-get', 'update'])

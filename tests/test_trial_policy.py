@@ -32,6 +32,24 @@ def evidence():
 
 
 class TrialPolicyTests(unittest.TestCase):
+    def test_ipv6_package_mirror_keeps_signing_and_preserves_original(self):
+        spec = importlib.util.spec_from_file_location('bootstrap_ipv6', ROOT / 'infra/bootstrap.py')
+        bootstrap = importlib.util.module_from_spec(spec); spec.loader.exec_module(bootstrap)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); (root / 'evidence').mkdir()
+            source = root / 'ubuntu.sources'; config = root / 'apt.conf'
+            original = ('Types: deb\nURIs: http://us-central1.gce.archive.ubuntu.com/ubuntu/\n'
+                        'Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n')
+            source.write_text(original)
+            bootstrap.configure_ipv6_packages(root, source, config)
+            bootstrap.configure_ipv6_packages(root, source, config)
+            self.assertIn('https://archive.ubuntu.com/ubuntu/', source.read_text())
+            self.assertIn('Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg', source.read_text())
+            self.assertEqual((root / 'evidence/ubuntu.sources.before-ipv6').read_text(), original)
+            self.assertIn('Acquire::ForceIPv6 "true";', config.read_text())
+            source.unlink(); source.symlink_to(root / 'evidence/ubuntu.sources.before-ipv6')
+            with self.assertRaises(ValueError): bootstrap.configure_ipv6_packages(root, source, config)
+
     def test_observation_refresh_preserves_deadline_account_and_stop_latch(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
