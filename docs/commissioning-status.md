@@ -1,10 +1,10 @@
 # Dawei Flood Intelligence — commissioning report
 
-Updated 2026-10-03 UTC / 2026-10-02 America/Los_Angeles. **FINAL STATE: EXTERNAL-BLOCKED.** Pilot source release and immutable image are published and tested. Production host access, trusted public HTTPS, live-provider commissioning and field-owner acceptance remain external gates.
+Updated 2026-10-03 UTC. **CURRENT PRODUCTION STATE: INFRASTRUCTURE-SELECTED.** The approved release is published. Synthetic cloud staging has independently verified HTTPS, persistence and encrypted off-site restoration. Persistent production provisioning requires Category D owner authorization of an Always Free cloud account. See [current autonomous deployment evidence](autonomous-deployment.md) and [current provider investigation](free-infrastructure-research.md). The tables below preserve earlier commissioning evidence; their uncommissioned production gates remain in force.
 
 ## Pilot release completed — 2026-10-03 06:27:24 UTC
 
-**Next boundary: PRODUCTION HOST ACCESS REQUIRED.** The owner release gate is complete. Deployment requires an operator-controlled Linux host/account, approved SSH/access method, intended domain and DNS control. No production `.env`, private secret directory or project SSH host is configured in the available environment. No cloud deployment CLI/account is configured; no VM, domain or paid service was purchased. Do not request provider secrets before the host exists.
+**Historical boundary, superseded by autonomous investigation: PRODUCTION HOST ACCESS REQUIRED.** The owner release gate is complete. Deployment requires an operator-controlled Linux host/account, approved SSH/access method, intended domain and DNS control. No production `.env`, private secret directory or project SSH host is configured in the available environment. No cloud deployment CLI/account is configured; no VM, domain or paid service was purchased. Do not request provider secrets before the host exists.
 
 - Repository owner `Wai-999` merged [PR #1](https://github.com/Wai-999/Dawei-Flood-Intellegence/pull/1) at `2026-10-03T01:52:16Z`. Validated merge commit: `c05aba604a9827a3f5cc55f5fc8ba478e9ae54dc`; source tree: `51959b0c47523fa41c2f271615edfb647f45b81f`, identical to the reviewed candidate.
 - [Post-merge validation run 37087732219](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37087732219) completed successfully on that merge commit. No unresolved reviews/threads or application changes were found during the release recheck.

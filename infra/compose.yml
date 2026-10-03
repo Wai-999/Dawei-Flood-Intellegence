@@ -1,0 +1,67 @@
+name: dawei-pilot
+x-app: &app
+  image: ${FLOOD_RELEASE_IMAGE:?Pinned release image required}
+  env_file: ${FLOOD_ROOT:?Host directory required}/runtime.env
+  volumes:
+    - ${FLOOD_ROOT}/data:/data
+    - ${FLOOD_ROOT}/backups:/backups
+    - ${FLOOD_ROOT}/secrets:/run/secrets:ro
+  restart: unless-stopped
+  read_only: true
+  tmpfs: ['/tmp:size=32m,mode=1777']
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  stop_grace_period: 35s
+  logging:
+    driver: json-file
+    options: {max-size: 10m, max-file: '3'}
+services:
+  maintenance:
+    <<: *app
+    profiles: [maintenance]
+    restart: 'no'
+    network_mode: none
+    healthcheck: {disable: true}
+    command: [python, -m, flood.cli, init]
+  app:
+    <<: *app
+    networks:
+      ingress: {ipv4_address: 172.29.0.3}
+  backup:
+    <<: *app
+    command: [python, -m, flood.recovery, worker]
+    healthcheck: {disable: true}
+    networks:
+      ingress: {ipv4_address: 172.29.0.4}
+  telegram:
+    <<: *app
+    profiles: [telegram]
+    command: [python, -m, flood.integrations, telegram]
+    healthcheck: {disable: true}
+    networks:
+      ingress: {ipv4_address: 172.29.0.5}
+  sheets:
+    <<: *app
+    profiles: [sheets]
+    command: [python, -m, flood.integrations, sheets]
+    healthcheck: {disable: true}
+    networks:
+      ingress: {ipv4_address: 172.29.0.6}
+  proxy:
+    image: caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028
+    env_file: ${FLOOD_ROOT}/runtime.env
+    ports: ['80:80', '443:443']
+    volumes:
+      - ${FLOOD_ROOT}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${FLOOD_ROOT}/caddy-data:/data
+      - ${FLOOD_ROOT}/caddy-config:/config
+    restart: unless-stopped
+    networks:
+      ingress: {ipv4_address: 172.29.0.2}
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+networks:
+  ingress:
+    ipam:
+      config: [{subnet: 172.29.0.0/28}]
