@@ -19,14 +19,14 @@ Scope: the existing local MVP hardened into a single-host release candidate. Cla
 | Exports/privacy / P0 | WORKING | Role-safe filtered CSV/JSON/XLSX; formula protection; metadata/version/coverage tests | Public release remains disabled; owner must approve any further de-identification | External sharing policy |
 | Backup / P3 | WORKING | Signed real-data/source restore, counts/integrity; wrong-key/tampering tests; hourly worker/retention/lock | Mount private key, encrypted off-site storage and alerts; hosted RPO/RTO drill | External configuration |
 | Monitoring / P3 | PARTIAL | Public safe live/ready and private operator health, queues/provider state/backup failures; structured logs | Configure off-host probes, disk/worker alerts and on-call destination | External configuration |
-| CI/CD / P3 | WORKING locally; CONFIGURED on GitHub | Tests, ES-module checks, Bandit, dependency audit, privacy scan, Docker smoke/Caddy validation workflows | Require current PR checks green before merge; release builds image; host deploy explicit | Remote CI and external deployment gate |
+| CI/CD / P3 | WORKING | Tests, ES-module checks, Bandit, dependency audit, privacy scan, Docker smoke/Caddy validation; [GitHub run passed](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37083989391) | Require current PR checks green before merge; release builds image; host deploy explicit | Remote CI and external deployment gate |
 | Secrets / P0 | WORKING | Source-only allowlist, Git/Docker exclusions, recognizable-token scan; private file exclusion container test | Operator key custody/rotation and volume encryption | External configuration |
 | Runtime/proxy / P3 | WORKING | Pinned non-root image, Gunicorn threads/timeouts, private port, trusted proxy/header checks, Caddy config validation | Real DNS/certificate/HTTPS test has not occurred | External host/domain |
 | Advanced statistics / P4 | MISSING (deferred) | Descriptive sample size/missingness only; no fabricated Bayesian/Monte Carlo output | Need sampling/calibration/scenario distributions and domain validation | No; unsupported outputs remain unavailable |
 
 ## Release acceptance
 
-53 automated tests are in the repository; local results and limitations are in [acceptance-results.md](acceptance-results.md). Remote CI status must be read from the current PR. No production deployment is approved by a locally green test alone. Build contains source/static assets only, never operational data. The original Sheet remained unchanged.
+53 automated tests are in the repository; local results and limitations are in [acceptance-results.md](acceptance-results.md). GitHub PR validation completed successfully for implementation commit `cf07f8938d8346945c51eacc94a9463276cd3aa1`; inspect current PR checks after later changes. No production deployment is approved by a locally green test alone. Build contains source/static assets only, never operational data. The original Sheet remained unchanged.
 
 All P0–P3 repository-controlled paths have implementation and local checks. Launch tasks requiring external account/data-owner authority are enumerated below. Advanced features remain explicitly deferred, rather than implemented with unsupported assumptions.
 

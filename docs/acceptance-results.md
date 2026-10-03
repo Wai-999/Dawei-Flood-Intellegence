@@ -18,3 +18,7 @@ The original Sheet was exported read-only and remains unchanged. The earlier pro
 ## External acceptance still open
 
 No live host/domain, hosted TLS, production identity provisioning, real Telegram intake/replies or Google writes have been commissioned. Encrypted off-site storage, alerts and a hosted outage recovery exercise require owner accounts/configuration. Validated geographic inputs, domain-approved methods and field terminology/pilot usability require data-owner approval. Missing source information cannot support verified impact totals, regional coverage or defensible village rankings today.
+
+## GitHub acceptance
+
+[Production validation run 2](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37083989391) completed successfully on implementation commit `cf07f8938d8346945c51eacc94a9463276cd3aa1`. Both test-security and container jobs passed on fresh Ubuntu runners, including dependency installation, all 53 tests, explicit module checks, scans, image build/restart smoke and Caddy validation. [Pull request #1](https://github.com/Wai-999/Dawei-Flood-Intellegence/pull/1) contains the source-only release and deployment instructions. Documentation-only follow-up commits remain subject to current PR checks.
