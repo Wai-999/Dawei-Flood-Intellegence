@@ -1,0 +1,68 @@
+name: dawei-flood
+x-app: &app
+  image: dawei-flood:${FLOOD_IMAGE_TAG:-local}
+  build: .
+  env_file: ${FLOOD_ENV_FILE:-.env}
+  environment:
+    FLOOD_DATABASE: /data/flood.sqlite3
+    FLOOD_SOURCE_DIRECTORY: /data/source
+    FLOOD_BACKUP_DIRECTORY: /backups
+    FLOOD_TRUSTED_PROXIES: 172.29.0.2
+  volumes:
+    - flood-data:/data
+    - flood-backups:/backups
+    - ./secrets:/run/secrets:ro
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp:size=32m,mode=1777]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  stop_grace_period: 35s
+services:
+  app:
+    <<: *app
+    networks:
+      ingress:
+        ipv4_address: 172.29.0.3
+  backup:
+    <<: *app
+    command: [python, -m, flood.recovery, worker]
+    healthcheck:
+      disable: true
+    networks: [ingress]
+  telegram:
+    <<: *app
+    profiles: [integrations]
+    command: [python, -m, flood.integrations, telegram]
+    healthcheck:
+      disable: true
+    networks: [ingress]
+  sheets:
+    <<: *app
+    profiles: [integrations]
+    command: [python, -m, flood.integrations, sheets]
+    healthcheck:
+      disable: true
+    networks: [ingress]
+  proxy:
+    image: caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028
+    env_file: ${FLOOD_ENV_FILE:-.env}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+    networks:
+      ingress:
+        ipv4_address: 172.29.0.2
+networks:
+  ingress:
+    ipam:
+      config:
+        - subnet: 172.29.0.0/28
+volumes:
+  flood-data:
+  flood-backups:
+  caddy-data:
+  caddy-config:
