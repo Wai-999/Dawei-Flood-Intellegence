@@ -1,0 +1,9 @@
+{
+  "configuration_version": "pilot-infrastructure-1",
+  "repository": "https://github.com/Wai-999/Dawei-Flood-Intellegence.git",
+  "tag": "v0.1.0-pilot",
+  "commit": "c05aba604a9827a3f5cc55f5fc8ba478e9ae54dc",
+  "schema_version": 2,
+  "amd64_image": "ghcr.io/wai-999/dawei-flood-intellegence@sha256:c6d38231fc37097dfef73643114de4f028369f886401b49ff130d4f31cdfff98",
+  "caddy_image": "caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028"
+}

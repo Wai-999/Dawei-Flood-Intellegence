@@ -1,0 +1,15 @@
+name: External readiness
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17,47 * * * *'
+permissions:
+  contents: read
+jobs:
+  public-https:
+    if: github.event_name == 'workflow_dispatch' || vars.FLOOD_MONITOR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 infra/external-probe.py --hostname floodintelligence.duckdns.org

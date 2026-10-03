@@ -14,7 +14,7 @@ x-app: &app
     - ./secrets:/run/secrets:ro
   restart: unless-stopped
   read_only: true
-  tmpfs: [/tmp:size=32m,mode=1777]
+  tmpfs: ['/tmp:size=32m,mode=1777']
   cap_drop: [ALL]
   security_opt: [no-new-privileges:true]
   stop_grace_period: 35s
@@ -29,21 +29,27 @@ services:
     command: [python, -m, flood.recovery, worker]
     healthcheck:
       disable: true
-    networks: [ingress]
+    networks:
+      ingress:
+        ipv4_address: 172.29.0.4
   telegram:
     <<: *app
     profiles: [integrations]
     command: [python, -m, flood.integrations, telegram]
     healthcheck:
       disable: true
-    networks: [ingress]
+    networks:
+      ingress:
+        ipv4_address: 172.29.0.5
   sheets:
     <<: *app
     profiles: [integrations]
     command: [python, -m, flood.integrations, sheets]
     healthcheck:
       disable: true
-    networks: [ingress]
+    networks:
+      ingress:
+        ipv4_address: 172.29.0.6
   proxy:
     image: caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028
     env_file: ${FLOOD_ENV_FILE:-.env}

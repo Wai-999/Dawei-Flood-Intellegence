@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '22'
       - run: python -m pip install -r requirements-production.txt pip-audit==2.10.1 bandit==1.8.6
-      - run: python -m compileall -q flood tests
+      - run: python -m compileall -q flood tests infra
       - run: for script in apps/dashboard/*.js; do node --input-type=module --check < "$script"; done
       - run: python -m unittest discover -s tests -v
       - run: python scripts/secret_scan.py
@@ -33,3 +33,10 @@ jobs:
       - run: sh scripts/container-smoke.sh dawei-flood:production-readiness
       - run: sh scripts/commissioning-smoke.sh dawei-flood:production-readiness
       - run: docker run --rm -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" -e FLOOD_DOMAIN=flood.example -e TLS_CONTACT_EMAIL=operator@example.com caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028 caddy validate --config /etc/caddy/Caddyfile
+      - run: docker run --rm -v "$PWD/infra/Caddyfile:/etc/caddy/Caddyfile:ro" -e FLOOD_DOMAIN=flood.example caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028 caddy validate --config /etc/caddy/Caddyfile
+  linux-deployment-rehearsal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y python3 age rclone
+      - run: sh infra/rehearse-linux.sh
