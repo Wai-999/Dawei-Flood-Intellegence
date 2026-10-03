@@ -25,6 +25,7 @@ jobs:
       - run: bandit -r flood
       - run: docker build -t flood-release .
       - run: sh scripts/container-smoke.sh flood-release
+      - run: sh scripts/commissioning-smoke.sh flood-release
       - run: python3 scripts/secret_scan.py
       - uses: docker/login-action@v3
         with:

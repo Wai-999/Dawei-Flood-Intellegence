@@ -2,6 +2,8 @@
 
 Scope: the existing local MVP hardened into a single-host release candidate. Classification means implementation evidence, not a claim of a running production service. Production is **EXTERNAL-BLOCKED** on host/domain, private credentials, backup destination, operator access and commissioning acceptance. No live URL, hosted HTTPS or live provider success is claimed.
 
+The subsequent [commissioning report](commissioning-status.md) records revalidation of application commit `e2ecef05bd91de985bed8130a25740c6ba07998b`, latest inspected CI, container recreation/signed restore evidence and every remaining operational gate. Use that report for current commissioning status; the table below preserves the implementation-readiness assessment.
+
 | Component / priority | Status | Evidence | Risk / required action | Blocks production? |
 |---|---|---|---|---|
 | API / P0 | WORKING | HTTP/WSGI tests; production container health smoke; strict framing/body/host checks | Pilot capacity test and deployed endpoint smoke | External launch acceptance |

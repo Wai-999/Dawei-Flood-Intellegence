@@ -31,4 +31,5 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build -t dawei-flood:production-readiness .
       - run: sh scripts/container-smoke.sh dawei-flood:production-readiness
+      - run: sh scripts/commissioning-smoke.sh dawei-flood:production-readiness
       - run: docker run --rm -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" -e FLOOD_DOMAIN=flood.example -e TLS_CONTACT_EMAIL=operator@example.com caddy:2-alpine@sha256:881bbc60f9986d5ab8e7cfd6cf7e4ef3c9c0439fef2429d035d065577882f028 caddy validate --config /etc/caddy/Caddyfile
