@@ -2,7 +2,7 @@
 
 ## Current state
 
-**Production: INFRASTRUCTURE-SELECTED.** The approved pilot is RELEASED. Oracle Always Free is selected for a persistent single-host deployment, subject to account owner authorization and available eligible capacity. No persistent production VM has been provisioned. The target `https://floodintelligence.duckdns.org` is not externally HTTPS-verified.
+**Production: INFRASTRUCTURE-SELECTED, conditional on account and cost verification.** The approved pilot remains RELEASED. The latest instruction explicitly excludes Oracle; the current selected candidate is Google Free Tier with persistent block storage and external IPv6 only. No production host or cloud authorization exists. See [current non-Oracle free-hosting decision](free-hosting-decision.md) for provider evidence, strict cost gates, prepared automation and remaining owner authorization. Neither unrestricted $0 traffic nor production HTTPS is verified.
 
 **Separate synthetic staging: DEPLOYED → HTTPS-VERIFIED → PERSISTENCE-VERIFIED → RECOVERY-VERIFIED within staging scope.** This does not advance production commissioning, provider commissioning, pilot readiness, field acceptance or operational status. The temporary Railway VM has an explicit **2026-10-03 07:48:50 UTC** expiry. Staging checks are historical once that window closes.
 
@@ -17,7 +17,9 @@ The implementation keeps the original single-host architecture: Internet → Duc
 - Infrastructure configuration: `pilot-infrastructure-1`; new source/configuration commit is separate from the unchanged approved application tag. Host receipts record source/image/configuration hashes and deployment time.
 - Staging deployment receipt timestamp: `2026-10-03T07:17:21.762027+00:00`.
 
-## Autonomous options attempted
+## Historical autonomous options attempted
+
+The table records the earlier investigation. Its Oracle recommendation and owner handoff are superseded by the latest non-Oracle decision; do not retry that provider.
 
 | Detected blocker | Exactly one classification | Investigation / action / result |
 |---|---|---|
@@ -48,16 +50,10 @@ The provider rationale, ongoing costs, account requirements, storage safety and 
 
 Detailed logs, private credentials, identity/signing escrow, SQLite fixtures and decrypted recovery content remain only under ignored private `outputs/autonomous-infrastructure/`. None is committed or attached to the public release. Public source carries summary outcomes, not payloads or secrets.
 
-## Remaining owner action
+## Current owner handoff and next execution
 
-**Immediate Category D action: create or authorize an Oracle Always Free account at [Oracle signup](https://signup.cloud.oracle.com/), or authorize an existing eligible tenancy.** The owner completes identity/MFA/phone/card verification and legal acceptance personally and keeps the account on the free plan. Once complete, make OCI access available through a private authorized account connection or private local OCI configuration; the agent needs authorized tenancy/region access, not card information, passwords, MFA codes or a publicly posted private key.
+**Category D: authorize the selected Google Free Tier project privately at [Google Cloud Console](https://console.cloud.google.com/).** Account creation, legal acceptance, MFA and payment verification belong to the owner. The agent will not upgrade billing or purchase resources. Sustainable Free Tier use requires an active non-trial billing account and verified aggregate allowances; a new trial alone is temporary and can delete resources. Provide private authorized access and project ID, never passwords, payment details, MFA codes or public keys/tokens in issues or logs.
 
-This is an account-authorization handoff, not a manual deployment procedure. After access exists, the agent will inventory eligible resources and aggregate quotas, provision a free-only VM/private bucket if capacity permits, bootstrap the exact release, then request only the DuckDNS update authorization if it is still unavailable. Tokens belong in private mode-600 files or approved secret storage, never GitHub issues, commits or logs.
+After authorization, inventory the actual whole account, verify current free eligibility/usage and excluded-destination/egress controls, then provision only eligible resources and bootstrap the unchanged pinned application. Request DuckDNS update authorization only after host work is ready, if still absent. Verify real external HTTPS, restart/recreation/reboot persistence and encrypted private GCS transport plus independent isolated restore before advancing production. IPv4-only field users require a separately verified access solution. Telegram, Sheets and accountable operational acceptance remain later gates.
 
-Later commissioning needs individual integration authorization and accountable data/field-owner decisions. Those do not block infrastructure preparation or synthetic regression testing.
-
-## Operational limits and next execution
-
-Always Free capacity, idle reclamation and free-tier support limits prevent an availability promise. No artificial traffic or trial recycling is permitted. SQLite stays on one host and local block storage. The agent never overwrites corrupted records; writes stop and evidence is retained for the approved recovery procedure. Off-site retention, custody and alert delivery are still human operational-policy decisions.
-
-Next execution after owner authorization: discover the real tenancy → verify free eligibility/current quotas → provision → immutable bootstrap → DuckDNS authorization/update → external HTTPS/security checks → restart/recreation/reboot persistence → encrypted private object roundtrip and isolated restore → integration phases → accountable pilot/field acceptance. Production states advance only from actual evidence.
+The hourly follow-up now excludes Oracle and waits quietly for authorized non-Oracle access. Detailed implementation, test scope, limitations and fallback choices are in [free-hosting decision](free-hosting-decision.md). No local or historical trial test is a production PASS.

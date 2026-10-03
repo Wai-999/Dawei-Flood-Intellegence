@@ -1,6 +1,6 @@
 # Dawei Flood Intelligence — commissioning report
 
-Updated 2026-10-03 UTC. **CURRENT PRODUCTION STATE: INFRASTRUCTURE-SELECTED.** The approved release is published. Synthetic cloud staging has independently verified HTTPS, persistence and encrypted off-site restoration. Persistent production provisioning requires Category D owner authorization of an Always Free cloud account. See [current autonomous deployment evidence](autonomous-deployment.md) and [current provider investigation](free-infrastructure-research.md). The tables below preserve earlier commissioning evidence; their uncommissioned production gates remain in force.
+Updated 2026-10-03 UTC. **CURRENT PRODUCTION STATE: INFRASTRUCTURE-SELECTED (conditional).** The approved application release is unchanged. Oracle is excluded by the latest owner instruction. Google Free Tier IPv6/local-block-storage automation is prepared, but owner authorization, actual aggregate cost/traffic gates and every production commissioning check remain open. See [current free-hosting decision](free-hosting-decision.md). Synthetic cloud staging checks are historical; the anonymous Railway VM expired and has not been renewed. The tables below retain prior evidence and do not establish current production readiness.
 
 ## Pilot release completed — 2026-10-03 06:27:24 UTC
 

@@ -1,3 +1,5 @@
+> **Historical investigation, superseded 2026-10-03 by [the non-Oracle free-hosting decision](free-hosting-decision.md).** The owner excludes Oracle. Do not use the old recommendation or account handoff below. Current preparation selects Google Free Tier conditionally, with strict billing/usage/traffic guards; no production host exists.
+
 # Zero-cost infrastructure investigation
 
 Verified against current official documentation on 2026-10-03 UTC. Availability and quotas must be checked again in the owner's actual account immediately before provisioning. This document records technical selection, not provider account creation or a guarantee of capacity.
