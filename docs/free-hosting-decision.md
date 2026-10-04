@@ -1,6 +1,6 @@
 # Hosting decision — authorized temporary allowance
 
-Updated October 3, 2026, America/Los_Angeles. The owner's latest allowance-only instruction supersedes the earlier sustainable-only answer. The existing owner-created, unupgraded, non-billable Google trial is actually deployed and tested. **TEMPORARY FREE — NOT SUSTAINABLE.** No paid continuation, purchase, payment entry, renewal or Oracle deployment is authorized.
+Updated October 4, 2026 UTC. The owner's latest allowance-only instruction supersedes the earlier sustainable-only answer. The existing owner-created, unupgraded, non-billable Google trial is actually deployed and tested. **TEMPORARY FREE — NOT SUSTAINABLE.** No paid continuation, purchase, payment entry, renewal or Oracle deployment is authorized.
 
 The provider comparison and rejected ephemeral-database alternatives are preserved in [the prior researched decision](archive/free-hosting-decision-before-live.md) and [infrastructure research](free-infrastructure-research.md). They are historical research, not current missing-access claims. The expired anonymous Railway trial was not restarted.
 
@@ -21,7 +21,7 @@ The separately tested trial policy retains a recovery reserve, conservative cuto
 ## Proven owner boundaries
 
 - **D — Independent cloud backup authorization:** a continuing independently accessible private destination still requires a scoped owner grant. [Rclone Drive documentation](https://rclone.org/drive/) recommends an owner OAuth client because its shared client is being retired during 2026; `drive.file` can restrict access to app-created backup files. Existing SDK consent does not grant Drive access. No broad Drive token or recovery identity was transferred to the VM.
-- **D — Integration authorization:** Telegram ownership/sender mapping and a dedicated Sheets projection credential/permission are missing. Workers remain disabled.
+- **TESTED — Integration authorization:** owner-authorized Telegram token/sender and the dedicated restricted Sheets projection are installed. Both workers are active; Sheets passed a real isolated projection drill and Telegram transport/checkpoint checks passed. Complete guided Telegram intake remains a controlled operator exercise. [Provider evidence](provider-commissioning.md) records the keyless/IPv6 adaptation and tested limits.
 - **D — Accountable acceptance:** recovery custody/retention/on-call responsibilities, descriptive-only methodology, geography and quarantined-claim review, Burmese field review, named pilot participants and field acceptance cannot be self-approved by infrastructure automation.
 
 These are the remaining boundaries. Host access, DuckDNS, real HTTPS, persistent storage and a real independent restore have been solved. Current evidence and the minimum handoff are in [commissioning status](commissioning-status.md).
