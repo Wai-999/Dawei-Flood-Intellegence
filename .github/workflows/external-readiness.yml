@@ -10,6 +10,21 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || vars.FLOOD_MONITOR_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    env:
+      FLOOD_IPV4_MONITOR_HOST: ${{ secrets.FLOOD_IPV4_MONITOR_HOST }}
+      FLOOD_IPV6_MONITOR_ADDRESS: ${{ secrets.FLOOD_IPV6_MONITOR_ADDRESS }}
     steps:
       - uses: actions/checkout@v4
-      - run: python3 infra/external-probe.py --hostname floodintelligence.duckdns.org
+      - name: Verify the stable IPv6 DNS record
+        run: |
+          python3 - <<'PY'
+          import ipaddress, os, socket
+          expected = ipaddress.IPv6Address(os.environ['FLOOD_IPV6_MONITOR_ADDRESS'])
+          actual = {ipaddress.IPv6Address(row[4][0]) for row in socket.getaddrinfo('floodintelligence.duckdns.org', 443, socket.AF_INET6, socket.SOCK_STREAM)}
+          assert expected in actual, 'Stable IPv6 DNS differs from the commissioned address'
+          print('Stable DuckDNS IPv6 record: PASS')
+          PY
+      - name: Verify trusted IPv4 ingress and persistent application
+        run: |
+          test -n "$FLOOD_IPV4_MONITOR_HOST"
+          python3 infra/external-probe.py --hostname "$FLOOD_IPV4_MONITOR_HOST"
