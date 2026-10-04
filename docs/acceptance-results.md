@@ -1,4 +1,6 @@
-# Acceptance evidence — 2026-10-02
+# Acceptance evidence — 2026-10-02 (historical)
+
+This document preserves the October 2 source checkpoint. [Current commissioning](commissioning-status.md) and [provider evidence](provider-commissioning.md) supersede its missing-host/provider statements; historical measurements below are not current deployment claims.
 
 ## Repository and local acceptance
 
@@ -15,7 +17,7 @@
 
 The original Sheet was exported read-only and remains unchanged. The earlier processed workbook has 15 tabs, 79 location entries, 63 provisional reports and 88 quarantined cells. It remains a private local artifact; observation time/counts were not invented. Source news references were not independently corroborated.
 
-## External acceptance still open
+## External acceptance at this historical checkpoint
 
 No live host/domain, hosted TLS, production identity provisioning, real Telegram intake/replies or Google writes have been commissioned. Encrypted off-site storage, alerts and a hosted outage recovery exercise require owner accounts/configuration. Validated geographic inputs, domain-approved methods and field terminology/pilot usability require data-owner approval. Missing source information cannot support verified impact totals, regional coverage or defensible village rankings today.
 
