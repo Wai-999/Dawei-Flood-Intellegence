@@ -1,9 +1,16 @@
 import hashlib
 import importlib.util
+import contextlib
+import io
+import json
 from pathlib import Path
 import sqlite3
+import subprocess
 import tempfile
+import time
 import unittest
+from unittest.mock import patch
+from datetime import datetime, timedelta, timezone
 
 
 def module(name):
@@ -78,6 +85,47 @@ class InfrastructureTests(unittest.TestCase):
                 offsite.private_file(path)
             path.chmod(0o600)
             offsite.private_file(path)
+
+    def test_stalled_workers_fail_monitoring_without_writes_and_idle_sheets_are_healthy(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'data').mkdir(); (root / 'backups').mkdir()
+            path = root / 'data/flood.sqlite3'
+            fresh = datetime.now(timezone.utc).isoformat()
+            stale = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+            with sqlite3.connect(path) as db:
+                db.execute('CREATE TABLE integration_state(key TEXT PRIMARY KEY,value TEXT,updated_at TEXT)')
+                db.execute('CREATE TABLE outbox(status TEXT,attempts INTEGER)')
+                db.executemany('INSERT INTO integration_state VALUES(?,?,?)', [
+                    ('backup_worker', '{"status":"SUCCESS"}', fresh),
+                    ('telegram', '{"status":"polled"}', stale),
+                    ('sheets', '{"status":"synced"}', stale)])
+            (root / 'backups/flood-fixture.tar.gz').write_bytes(b'SYNTHETIC')
+            (root / 'offsite-receipt.json').write_text('{}')
+            (root / 'enabled-workers.json').write_text('["telegram","sheets"]')
+            rows = [{'Service': name, 'State': 'running', 'Health': 'healthy'}
+                    for name in ('app', 'backup', 'proxy', 'telegram', 'sheets')]
+            transport = subprocess.CompletedProcess([], 0, json.dumps(rows), '')
+            with patch('sys.argv', ['host-monitor', '--root', str(root)]), \
+                 patch.object(monitor, 'compose', return_value=transport) as compose, \
+                 patch.object(monitor, 'tls_status', return_value={'status': 'HEALTHY'}), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                before = hashlib.sha256(path.read_bytes()).hexdigest()
+                self.assertEqual(monitor.main(), 1)
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), before)
+                self.assertFalse((root / 'STOP_WRITES').exists())
+                self.assertEqual(monitor.worker_status(path, ['telegram', 'sheets'], time.time())['sheets'], 'IDLE')
+                with sqlite3.connect(path) as db:
+                    db.execute('UPDATE integration_state SET updated_at=? WHERE key=?', (fresh, 'telegram'))
+                self.assertEqual(monitor.main(), 0)
+                with sqlite3.connect(path) as db:
+                    db.execute("INSERT INTO outbox VALUES('pending',0)")
+                self.assertEqual(monitor.main(), 1)
+                with sqlite3.connect(path) as db:
+                    db.execute('DELETE FROM outbox')
+                    db.execute('UPDATE integration_state SET value=? WHERE key=?', ('{"status":"failed"}', 'sheets'))
+                self.assertEqual(monitor.main(), 1)
+                self.assertTrue(all(call.args[1:] == ('ps', '--all', '--format', 'json') for call in compose.call_args_list))
 
 
 if __name__ == '__main__':
