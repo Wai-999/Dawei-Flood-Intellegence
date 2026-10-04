@@ -1,0 +1,41 @@
+{
+    admin off
+    auto_https off
+}
+
+# The provider terminates trusted TLS. SQLite stays on the private persistent VM.
+:8080 {
+    @permitted host {$FLOOD_BRIDGE_HOST}
+    handle @permitted {
+      # Preserve the original-origin check before the exact permitted rewrite.
+      route {
+        @foreign_origin {
+            header Origin *
+            not header Origin https://{$FLOOD_BRIDGE_HOST}
+        }
+        respond @foreign_origin "Forbidden origin" 403
+        request_body {
+            max_size 1MB
+        }
+        header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        @same_origin header Origin https://{$FLOOD_BRIDGE_HOST}
+        request_header @same_origin Origin https://{$FLOOD_DOMAIN}
+        reverse_proxy https://{$FLOOD_PRIVATE_UPSTREAM}:443 {
+            header_up Host {$FLOOD_DOMAIN}
+            header_up -Forwarded
+            header_up -X-Serverless-Authorization
+            header_up X-Forwarded-Host {$FLOOD_DOMAIN}
+            header_up X-Forwarded-Proto https
+            header_up -X-Forwarded-For
+            transport http {
+                tls_server_name {$FLOOD_DOMAIN}
+                dial_timeout 5s
+                response_header_timeout 15s
+            }
+        }
+      }
+    }
+    handle {
+        respond "Unrecognized host" 421
+    }
+}
