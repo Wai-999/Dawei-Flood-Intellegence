@@ -1,6 +1,6 @@
 # Autonomous deployment — live provider checkpoint
 
-Updated October 4, 2026 UTC. **DEPLOYED → HTTPS-VERIFIED → PERSISTENCE-VERIFIED → RECOVERY-VERIFIED** for the actual temporary trial checkpoint. Authorized Sheets projection and Telegram transport are tested and active. Full guided Telegram intake, unattended independent transport, scheduled external execution/alert delivery and accountable pilot/field acceptance remain open. **TEMPORARY FREE — NOT SUSTAINABLE.** This is not OPERATIONAL or an accepted humanitarian deployment.
+Updated October 4, 2026 UTC. **DEPLOYED → HTTPS-VERIFIED → PERSISTENCE-VERIFIED → RECOVERY-VERIFIED** for the actual temporary trial checkpoint. Authorized Sheets projection and Telegram transport are tested and active. Full guided Telegram intake, unattended independent transport, owner alert delivery and accountable pilot/field acceptance remain open. **TEMPORARY FREE — NOT SUSTAINABLE.** This is not OPERATIONAL or an accepted humanitarian deployment.
 
 The owner authorized the existing non-billable Google trial and prohibited purchases, upgrades and paid continuation. SDK/DuckDNS consent and the named administrator were personally authorized. Earlier missing-host evidence is [historical](archive/autonomous-deployment-before-live.md); Oracle remains excluded and the expired Railway trial was not renewed.
 
@@ -25,7 +25,7 @@ Signed operational copy → age encryption → private GCS upload → literal do
 
 The refreshed bounded source-import/provider/backup/read workload retained at least 345.7 MiB available RAM and 24.25 GiB free disk during ten samples. Forty authenticated IPv4 reads, concurrency two, passed with p95 0.300 seconds. The current-source import was isolated from operational data; protected rows and SQLite checks passed. Field scale and sustained input remain unaccepted.
 
-Ninety-eight regressions and all six exact-head checks passed before the keyless/IPv6 infrastructure merges, including dependency/static/privacy checks, container smokes, trusted-TLS/Host/origin and both Linux deployment rehearsals. Independent external monitoring is enabled and manual probes passed; successful scheduled execution and owner alert receipt remain unobserved.
+Ninety-eight regressions and all six exact-head checks passed before the keyless/IPv6 infrastructure merges, including dependency/static/privacy checks, container smokes, trusted-TLS/Host/origin and both Linux deployment rehearsals. Independent external monitoring is enabled; manual probes and the [actual scheduled external probe](https://github.com/Wai-999/Dawei-Flood-Intellegence/actions/runs/37190263375) passed. The scheduled event genuinely ran on main, verifying the expected DuckDNS AAAA and trusted IPv4 ingress/application. Owner alert receipt remains unverified; one successful run does not guarantee future timing or delivery.
 
 ## Remaining proven boundaries
 
