@@ -166,7 +166,11 @@ def main():
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--once', action='store_true')
     parser.add_argument('--probe', action='store_true', help='Read authorized projection metadata without writing')
+    parser.add_argument('--ipv6', action='store_true', help='Require IPv6 for fixed provider endpoints on an IPv6-only host')
     args = parser.parse_args()
+    if args.ipv6:
+        from provider_ipv6 import install
+        install()
     token = WorkloadToken(args.config)
     sheet = token.config['sheet_id']
     client = ProjectionClient(sheet)
