@@ -54,10 +54,17 @@ def worker_status(path, enabled, now):
     try:
         with sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=3) as connection:
             rows = connection.execute('SELECT key,value,updated_at FROM integration_state').fetchall()
+            pending_projection = connection.execute("SELECT COUNT(*) FROM outbox WHERE status IN ('pending','failed') AND attempts<8").fetchone()[0]
         states = {key: (json.loads(value), updated) for key, value, updated in rows}
         for name in enabled:
             value, updated = states.get(name, ({}, None))
-            if not updated:
+            # The approved Sheets worker has no heartbeat when there is no
+            # projection work. Container liveness is checked separately.
+            if value.get('status') in {'failed', 'FAILED'}:
+                result[name] = 'FAILED'
+            elif name == 'sheets' and not pending_projection:
+                result[name] = 'IDLE'
+            elif not updated:
                 result[name] = 'STALE'
             else:
                 age = now - datetime.fromisoformat(updated.replace('Z', '+00:00')).timestamp()
@@ -150,7 +157,8 @@ def main():
         status['containers'] = 'CHECK_FAILED'
     (root / 'health-status.json').write_text(json.dumps(status, indent=2) + '\n')
     print(json.dumps(status))
-    return 1 if database != 'HEALTHY' or status['disk'] != 'HEALTHY' or status['containers'] != 'HEALTHY' or status['backup'] != 'FRESH' or status['offsite'] != 'FRESH' or status['origin_tls']['status'] != 'HEALTHY' else 0
+    workers_unhealthy = any(value not in {'DISABLED', 'FRESH', 'IDLE', 'PRESENT'} for value in status['workers'].values())
+    return 1 if database != 'HEALTHY' or status['disk'] != 'HEALTHY' or status['containers'] != 'HEALTHY' or status['backup'] != 'FRESH' or status['offsite'] != 'FRESH' or status['origin_tls']['status'] != 'HEALTHY' or workers_unhealthy else 0
 
 
 if __name__ == '__main__':
