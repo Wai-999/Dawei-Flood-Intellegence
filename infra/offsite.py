@@ -34,9 +34,20 @@ def compose(root, *args):
     return run(['docker', 'compose', '--env-file', str(root / 'compose.env'), '-f', str(root / 'compose.yml'), *args])
 
 
-def rclone(root, *args):
-    config = root / 'secrets' / 'rclone.conf'
+def rclone(root, *args, config=None):
+    if config is None:
+        config = root / 'secrets' / 'rclone.conf'
+    else:
+        config = Path(config).absolute()
+        directory = root / 'backup-secrets'
+        if (root.is_symlink() or directory.is_symlink() or
+                config != directory / 'drive.conf' or
+                not directory.is_dir() or directory.stat().st_mode & 0o077 or
+                directory.stat().st_uid != os.geteuid()):
+            raise ValueError('Drive credentials require a private backup-only directory')
     private_file(config)
+    if config.parent.name == 'backup-secrets' and config.stat().st_uid != os.geteuid():
+        raise ValueError('Backup credentials must be operator-owned')
     return run(['rclone', '--config', str(config), '--retries', '3', '--low-level-retries', '3', '--retries-sleep', '5s', '--log-level', 'ERROR', *args])
 
 
@@ -50,9 +61,14 @@ def main():
     parser.add_argument('--object', help='Ciphertext basename recorded by push')
     parser.add_argument('--output', type=Path, help='New isolated restore path below root/evidence')
     parser.add_argument('--max-remote-bytes', type=int, default=8 * 1024**3)
+    parser.add_argument('--rclone-config', type=Path, help='Optional private root/backup-secrets/drive.conf; never mount into application services')
     args = parser.parse_args()
     os.umask(0o077)
+    if args.rclone_config and (args.root.is_symlink() or args.root.absolute() != args.root.resolve()):
+        raise ValueError('Explicit backup credentials require a non-symlink deployment root')
     root = args.root.resolve()
+    def transfer(*command):
+        return rclone(root, *command, config=args.rclone_config)
     if not re.fullmatch(r'[A-Za-z0-9_-]+:[A-Za-z0-9_./-]+', args.destination) or '..' in args.destination:
         raise ValueError('Use a configured private remote and dedicated prefix; no public URL or credential arguments')
     root.joinpath('encrypted').mkdir(mode=0o700, exist_ok=True)
@@ -75,13 +91,13 @@ def main():
                 run(['age', '--recipient', recipient, '--output', str(cipher), str(bundle)])
                 digest = sha256(cipher)
                 name = bundle.name + '.' + digest[:16] + '.age'
-                current = json.loads(rclone(root, 'size', '--json', args.destination).stdout)['bytes']
+                current = json.loads(transfer('size', '--json', args.destination).stdout)['bytes']
                 if current + cipher.stat().st_size > args.max_remote_bytes:
                     raise ValueError('Off-site capacity guard reached; preserve data and obtain owner retention decision')
                 remote = args.destination.rstrip('/') + '/' + name
-                rclone(root, 'copyto', str(cipher), remote)
+                transfer('copyto', str(cipher), remote)
                 downloaded = Path(temporary) / 'downloaded.age'
-                rclone(root, 'copyto', remote, str(downloaded))
+                transfer('copyto', remote, str(downloaded))
                 if sha256(downloaded) != digest:
                     raise ValueError('Downloaded ciphertext differs; recovery NOT verified')
                 shutil.copy2(cipher, root / 'encrypted' / name)
@@ -101,7 +117,7 @@ def main():
             output.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             with tempfile.TemporaryDirectory(prefix='restore-download-', dir=root / 'encrypted') as temporary:
                 cipher, bundle = Path(temporary) / 'bundle.age', Path(temporary) / 'bundle.tar.gz'
-                rclone(root, 'copyto', args.destination.rstrip('/') + '/' + args.object, str(cipher))
+                transfer('copyto', args.destination.rstrip('/') + '/' + args.object, str(cipher))
                 digest = sha256(cipher)
                 if digest[:16] != args.object.split('.')[-2]:
                     raise ValueError('Ciphertext checksum mismatch')
