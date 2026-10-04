@@ -25,3 +25,11 @@
     }
     header Strict-Transport-Security "max-age=31536000"
 }
+https:// {
+    header Strict-Transport-Security "max-age=31536000"
+    respond "Untrusted request host" 421
+}
+http:// {
+    @untrusted not host {$FLOOD_DOMAIN}
+    respond @untrusted "Untrusted request host" 421
+}
