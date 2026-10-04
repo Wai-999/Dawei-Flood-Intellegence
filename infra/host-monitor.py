@@ -6,10 +6,32 @@ import json
 import os
 import runpy
 from pathlib import Path
+import re
 import shutil
+import socket
+import ssl
 import sqlite3
 import subprocess
 import time
+
+
+def tls_status(root, now, port=443):
+    """Validate the origin's real chain/hostname and warn before certificate expiry."""
+    env = root / 'runtime.env'
+    if env.is_symlink() or not env.is_file() or env.stat().st_mode & 0o077:
+        return {'status': 'CONFIGURATION_UNAVAILABLE'}
+    domains = [line.split('=', 1)[1] for line in env.read_text().splitlines() if line.startswith('FLOOD_DOMAIN=')]
+    if len(domains) != 1 or not re.fullmatch(r'[a-z0-9.-]+', domains[0]):
+        return {'status': 'CONFIGURATION_UNAVAILABLE'}
+    try:
+        with socket.create_connection(('127.0.0.1', port), timeout=5) as connection:
+            with ssl.create_default_context().wrap_socket(connection, server_hostname=domains[0]) as tls:
+                expiry = ssl.cert_time_to_seconds(tls.getpeercert()['notAfter'])
+        return {'status': 'HEALTHY' if expiry - now > 7 * 86400 else 'EXPIRING',
+                'expires_at': datetime.fromtimestamp(expiry, timezone.utc).isoformat(),
+                'trusted_chain_hostname': True}
+    except (OSError, ssl.SSLError, ValueError, KeyError):
+        return {'status': 'INVALID_OR_UNAVAILABLE', 'trusted_chain_hostname': False}
 
 
 def database_status(path):
@@ -97,6 +119,7 @@ def main():
               'backup': 'FRESH' if age is not None and age <= 7200 else 'STALE',
               'offsite': 'FRESH' if offsite_age is not None and offsite_age <= 86400 else 'NOT_VERIFIED_OR_STALE',
               'workers': worker_status(root / 'data' / 'flood.sqlite3', enabled, now),
+              'origin_tls': tls_status(root, now),
               'writes_latched': (root / 'STOP_WRITES').exists(), 'containers': 'UNKNOWN'}
     if args.apply and (database == 'CORRUPT' or status['disk'] == 'CRITICAL'):
         preserve_and_stop(root, 'DATABASE_CORRUPTION' if database == 'CORRUPT' else 'LOW_DISK')
@@ -127,7 +150,7 @@ def main():
         status['containers'] = 'CHECK_FAILED'
     (root / 'health-status.json').write_text(json.dumps(status, indent=2) + '\n')
     print(json.dumps(status))
-    return 1 if database != 'HEALTHY' or status['disk'] != 'HEALTHY' or status['containers'] != 'HEALTHY' or status['backup'] != 'FRESH' or status['offsite'] != 'FRESH' else 0
+    return 1 if database != 'HEALTHY' or status['disk'] != 'HEALTHY' or status['containers'] != 'HEALTHY' or status['backup'] != 'FRESH' or status['offsite'] != 'FRESH' or status['origin_tls']['status'] != 'HEALTHY' else 0
 
 
 if __name__ == '__main__':

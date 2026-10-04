@@ -65,6 +65,10 @@ def main():
                 time.sleep(1)
             assert ca.is_file(), 'Fixture CA was not created'
             context = ssl.create_default_context(cafile=str(ca))
+            import importlib.util
+            import os
+            spec = importlib.util.spec_from_file_location('origin_monitor', here / 'host-monitor.py')
+            monitor = importlib.util.module_from_spec(spec); spec.loader.exec_module(monitor)
             for attempt in range(30):
                 try:
                     status, _, body = request(https_port, 'flood.example', context=context)
@@ -76,10 +80,23 @@ def main():
             else:
                 raise AssertionError('Valid Host did not reach the private backend')
             assert request(https_port, 'untrusted.example', context=context, forwarded=True)[0] == 421
+            runtime = folder / 'runtime.env'
+            runtime.write_text('FLOOD_DOMAIN=flood.example\n'); runtime.chmod(0o600)
+            previous_ca = os.environ.get('SSL_CERT_FILE')
+            try:
+                os.environ['SSL_CERT_FILE'] = str(ca)
+                # Caddy's trusted internal leaf is short-lived: verify the
+                # early-expiry alarm using a real TLS handshake and certificate.
+                assert monitor.tls_status(folder, time.time(), https_port)['status'] == 'EXPIRING'
+                runtime.write_text('FLOOD_DOMAIN=untrusted.example\n')
+                assert monitor.tls_status(folder, time.time(), https_port)['status'] == 'INVALID_OR_UNAVAILABLE'
+            finally:
+                if previous_ca is None: os.environ.pop('SSL_CERT_FILE', None)
+                else: os.environ['SSL_CERT_FILE'] = previous_ca
             status, headers, _ = request(http_port, 'flood.example')
             assert status in {301, 302, 307, 308} and headers.get('Location') == 'https://flood.example/health/ready'
             assert request(http_port, 'untrusted.example', forwarded=True)[0] == 421
-            print('PASS: trusted fixture TLS, valid Host proxy, HTTP redirect, HTTP/HTTPS unknown-Host rejection, forwarded-Host spoof rejection')
+            print('PASS: trusted fixture TLS, origin certificate expiry alarm, hostname mismatch rejection, valid Host proxy, HTTP redirect, HTTP/HTTPS unknown-Host rejection, forwarded-Host spoof rejection')
         finally:
             for kind, name in reversed(created):
                 subprocess.run(['docker', kind, 'rm', *(['-f'] if kind == 'container' else []), name], capture_output=True, timeout=30, check=False)

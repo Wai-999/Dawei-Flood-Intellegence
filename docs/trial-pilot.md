@@ -14,9 +14,8 @@ This freshness requirement trades availability for recovery safety. Before pilot
 
 The application stays pinned to approved commit `c05aba604a9827a3f5cc55f5fc8ba478e9ae54dc` and the images in `infra/release.json`. Geography, quarantined claims, governance, methodology or descriptive-only scope, Burmese field review, integration authorizations and field acceptance remain accountable human gates.
 
-## Evidence at this change
+## Current evidence
 
-- **TESTED:** private Google SDK authentication succeeded; required APIs enabled without billing conversion. Complete actual resource inventory found one linked project and no VMs, disks, addresses, routers, forwarding rules or buckets.
-- **TESTED:** 82 local regression tests plus the added evidence-refresh regression passed, including ten trial tests for credit/expiry/account checks, missing/stale/unsafe evidence, unsigned/same-account restore rejection, writer shutdown and preservation of existing corruption evidence. The first sandbox test run lacked localhost binding; the authorized rerun passed.
-- **IMPLEMENTED:** Linux CI rehearses stale-trial shutdown and Docker restart without writer resurrection, alongside existing persistence, encrypted restore, capacity and corruption drills. Its actual workflow result must be checked before recording PASS.
-- **NOT VERIFIED:** a new host, actual target HTTPS, intended IPv4 reachability, host reboot, independent production recovery, sustained credit/backup refresh, capacity, integrations and field acceptance. Historical staging is not production evidence.
+The initial empty-resource inventory and preparation-only checkpoint preceded the actual deployment. [The current commissioning report](commissioning-status.md) records the live persistent VM, DuckDNS IPv6 and separate IPv4 HTTPS ingress, actual reboot persistence, signed client-encrypted GCS round trip and independent isolated restore. The owner account was recovered and operational rows reconciled. Eighty-eight regressions and both Linux deployment rehearsals passed, including stale-trial shutdown and Docker restart without writer resurrection.
+
+Actual credit/account and independent recovery observations have been refreshed; the twelve-hour freshness guard remains active. Hourly encrypted uploads and bounded read workload checks passed. Continuously unattended independent recovery transport, provider commissioning, on-call receipt and field acceptance remain open. This temporary trial checkpoint does not establish sustainable hosting or humanitarian acceptance.
